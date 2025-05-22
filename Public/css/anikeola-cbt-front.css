@@ -1,84 +1,145 @@
 /*
  * Anikeola CBT System - Front-end Styles
- * Version: 1.8 (Matches plugin version where this file is first populated)
+ * Version: 2.2 (Enhanced UI v2)
  */
 
+body.cbt-exam-active {
+    background-color: #f4f7f6; /* Softer page background */
+    color: #4a4a4a;
+}
+
 .anikeola-cbt-exam-wrapper {
-    font-family: Arial, sans-serif;
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font stack */
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 30px 40px;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
 .anikeola-cbt-exam-title {
-    font-size: 24px;
+    font-size: 32px;
+    font-weight: 700;
     color: #333;
     text-align: center;
     margin-top: 0;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 3px solid #4A90E2; /* Primary accent color */
 }
 
+/* --- Timer --- */
 .anikeola-cbt-timer {
+    display: flex;
+    justify-content: space-between; /* For Timer and Progress Bar */
+    align-items: center;
     font-size: 16px;
-    font-weight: bold;
-    color: #d9534f; /* Red color for timer */
-    text-align: center;
+    font-weight: 500;
+    color: #D32F2F; /* More prominent red */
     margin-bottom: 20px;
-    padding: 10px;
-    background-color: #fff;
-    border: 1px dashed #d9534f;
-    border-radius: 4px;
+    padding: 10px 15px;
+    background-color: #fff3f3;
+    border: 1px solid #ffcdd2;
+    border-radius: 6px;
 }
 
-#anikeola-cbt-countdown { /* Generic ID if only one timer on page, or use specific like in shortcode */
+.anikeola-cbt-timer span[id^="anikeola-cbt-countdown-"] { /* Corrected generic selector for the countdown span */
     padding: 5px 10px;
-    background-color: #f2dede;
-    border-radius: 3px;
+    background-color: #D32F2F;
+    color: #fff;
+    border-radius: 4px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
 }
+
+/* --- Progress Bar (Basic Styling - JS needed for functionality) --- */
+.anikeola-cbt-progress-container {
+    width: 60%; /* Adjust as needed */
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    height: 20px;
+    overflow: hidden;
+    position: relative;
+}
+
+.anikeola-cbt-progress-bar {
+    width: 0%; /* Will be updated by JS */
+    height: 100%;
+    background-color: #4A90E2; /* Primary accent */
+    text-align: center;
+    line-height: 20px;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    transition: width 0.3s ease-in-out;
+}
+.anikeola-cbt-progress-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    line-height: 20px;
+    color: #333;
+    font-size: 12px;
+    font-weight:500;
+}
+
 
 .anikeola-cbt-exam-instructions {
-    background-color: #fff;
-    padding: 15px;
-    border: 1px solid #e3e3e3;
-    border-radius: 4px;
-    margin-bottom: 25px;
+    background-color: #e9f7ff; /* Light blue info box */
+    padding: 20px;
+    border: 1px solid #b3e0ff;
+    border-left: 5px solid #4A90E2;
+    border-radius: 6px;
+    margin-bottom: 30px;
     font-size: 15px;
-    line-height: 1.6;
+    line-height: 1.7;
+    color: #31708f; /* Darker blue for text */
+}
+.anikeola-cbt-exam-instructions p:last-child {
+    margin-bottom: 0;
 }
 
 .anikeola-cbt-questions-container {
-    margin-bottom: 25px;
+    margin-bottom: 30px;
 }
 
 .anikeola-cbt-question {
     background-color: #fff;
-    padding: 20px;
-    margin-bottom: 20px;
-    border: 1px solid #e3e3e3;
-    border-radius: 5px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    padding: 20px 25px;
+    margin-bottom: 25px;
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    opacity: 0; /* For entry animation */
+    transform: translateY(20px); /* For entry animation */
+    animation: questionFadeIn 0.5s ease-out forwards;
 }
+/* Stagger animation for questions */
+.anikeola-cbt-question:nth-child(1) { animation-delay: 0.1s; }
+.anikeola-cbt-question:nth-child(2) { animation-delay: 0.2s; }
+.anikeola-cbt-question:nth-child(3) { animation-delay: 0.3s; }
+/* Add more if needed or handle with JS */
+
 
 .anikeola-cbt-question-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #444;
+    font-size: 19px;
+    font-weight: 500; /* Slightly less bold for modern feel */
+    color: #202124;
     margin-top: 0;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+    line-height: 1.5;
 }
 
 .anikeola-cbt-question-description {
     font-size: 14px;
-    color: #555;
-    margin-bottom: 15px;
-    padding-left: 10px;
-    border-left: 3px solid #f0f0f0;
+    color: #5f6368;
+    margin-bottom: 20px;
+    padding-left: 15px;
+    border-left: 3px solid #e0e0e0;
+    font-style: normal; /* Removing italic for a cleaner look */
+    line-height: 1.6;
 }
 
 .anikeola-cbt-answer-options {
@@ -89,97 +150,181 @@
 
 .anikeola-cbt-answer-options li {
     margin-bottom: 12px;
-    padding: 10px;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    background-color: #fdfdfd;
-    transition: background-color 0.2s ease-in-out;
-}
-
-.anikeola-cbt-answer-options li:hover {
-    background-color: #f5f5f5;
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, box-shadow 0.2s ease;
+    overflow: hidden; /* Ensure label background fills li */
 }
 
 .anikeola-cbt-answer-options li label {
-    display: flex; /* Use flex for alignment */
-    align-items: center; /* Vertically align items */
+    display: flex;
+    align-items: center;
+    padding: 15px; /* Increased padding */
     font-size: 16px;
-    color: #333;
+    color: #3c4043;
     cursor: pointer;
     width: 100%;
+    background-color: #f8f9fa;
+    transition: background-color 0.2s ease;
+}
+
+.anikeola-cbt-answer-options li:hover label {
+    background-color: #f1f3f4;
 }
 
 .anikeola-cbt-answer-options li input[type="radio"] {
-    margin-right: 12px;
-    transform: scale(1.2); /* Slightly larger radio buttons */
+    margin-right: 15px;
+    transform: scale(1.2);
+    accent-color: #4A90E2;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
-/* Style for selected answer (can be enhanced with JS) */
-.anikeola-cbt-answer-options li input[type="radio"]:checked + span { /* Assuming text is wrapped in span, or style label */
-    font-weight: bold;
+.anikeola-cbt-answer-options li.selected-answer {
+    border-color: #4A90E2;
+    background-color: #e8f0fe; /* Lighter blue for selected li */
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
 }
-.anikeola-cbt-answer-options li.selected-answer { /* If JS adds a class */
-    background-color: #e7f3ff;
-    border-color: #9cceff;
+.anikeola-cbt-answer-options li.selected-answer label {
+    background-color: transparent; /* Label background transparent when li is selected */
+    color: #1967d2; /* Darker blue for text of selected answer */
+    font-weight: 500;
 }
 
 
 .anikeola-cbt-submit-button {
     display: block;
-    width: 100%;
-    padding: 12px 20px;
+    width: auto;
+    min-width: 220px;
+    margin: 30px auto 0 auto;
+    padding: 14px 35px;
     font-size: 18px;
-    font-weight: bold;
+    font-weight: 600;
     color: #fff;
-    background-color: #5cb85c; /* Green color */
+    background-color: #34a853; /* Vibrant Green */
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
     text-align: center;
-    transition: background-color 0.2s ease-in-out;
+    transition: background-color 0.2s ease-in-out, transform 0.15s ease, box-shadow 0.2s ease;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    letter-spacing: 0.5px;
 }
 
 .anikeola-cbt-submit-button:hover {
-    background-color: #4cae4c;
+    background-color: #2c9045;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.15);
+}
+.anikeola-cbt-submit-button:active {
+    transform: translateY(0px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.anikeola-cbt-submit-button.disabled,
+.anikeola-cbt-submit-button:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
 }
 
+
 .anikeola-cbt-exam-result {
-    margin-top: 20px;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background-color: #f0f8ff; /* Light blue for results */
+    margin-top: 30px;
+    padding: 25px;
+    border: 1px solid #34a853;
+    border-radius: 8px;
+    background-color: #e6f4ea;
+    text-align: center;
+    animation: fadeInResult 0.6s ease-out;
 }
 
 .anikeola-cbt-exam-result h3 {
     margin-top: 0;
-    color: #31708f;
+    font-size: 24px;
+    color: #1e8e3e;
+    margin-bottom: 18px;
+}
+.anikeola-cbt-exam-result p {
+    font-size: 17px;
+    color: #333;
+    margin-bottom: 10px;
+    line-height: 1.6;
+}
+.anikeola-cbt-exam-result p strong {
+    font-weight: 600;
+    color: #202124;
+}
+.anikeola-cbt-exam-result .error {
+    color: #d93025;
+    font-weight: 500;
+    border: 1px dashed #d93025;
+    background-color: #fce8e6;
+    padding: 12px;
+    border-radius: 6px;
 }
 
+/* Animations */
+@keyframes fadeInResult {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes questionFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
 /* Basic responsiveness */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
     .anikeola-cbt-exam-wrapper {
-        margin: 10px;
-        padding: 15px;
+        margin: 20px;
+        padding: 20px;
     }
     .anikeola-cbt-exam-title {
-        font-size: 20px;
+        font-size: 26px;
     }
     .anikeola-cbt-question-title {
-        font-size: 16px;
+        font-size: 18px;
+    }
+    .anikeola-cbt-timer {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .anikeola-cbt-progress-container {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .anikeola-cbt-exam-wrapper {
+        padding: 15px;
+        margin: 10px;
+    }
+    .anikeola-cbt-exam-title {
+        font-size: 22px;
+    }
+     .anikeola-cbt-timer {
+        font-size: 15px;
+        padding: 8px;
+    }
+    .anikeola-cbt-question {
+        padding: 15px;
+    }
+    .anikeola-cbt-question-title {
+        font-size: 17px;
     }
     .anikeola-cbt-answer-options li label {
         font-size: 15px;
+        padding: 12px;
+    }
+    .anikeola-cbt-answer-options li input[type="radio"] {
+        margin-right: 10px;
+        transform: scale(1.1);
     }
     .anikeola-cbt-submit-button {
-        font-size: 16px;
-        padding: 10px 15px;
+        font-size: 17px;
+        padding: 12px 25px;
     }
-}
-.anikeola-cbt-exam-footer {
-    text-align: center;
-    margin-top: 20px;
-    font-size: 14px;
-    color: #777;
 }
