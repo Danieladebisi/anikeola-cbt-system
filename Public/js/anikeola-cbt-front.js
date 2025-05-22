@@ -6,6 +6,7 @@
     'use strict';
 
     $(document).ready(function() {
+        console.log('Localized Data:', anikeolaCbtData);
 
         $('.anikeola-cbt-exam-wrapper').each(function() {
             const $examWrapper = $(this);
@@ -84,6 +85,7 @@
                         answers: answersData 
                     },
                     success: function(response) {
+                        console.log('AJAX Response:', response);
                         if (response.success) {
                             let resultHtml = '<h3>' + (anikeolaCbtData.text_exam_submitted_header || 'Exam Results') + '</h3>';
                             resultHtml += '<p>' + (anikeolaCbtData.text_your_score_is || 'Your score:') + ' ' + response.data.score + ' / ' + response.data.total_questions + '</p>';
