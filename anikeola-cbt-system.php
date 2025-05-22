@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Anikeola CBT System Core
- * Description: Registers Custom Post Type, Taxonomies, and Meta Boxes for the Anikeola CBT System.
- * Version: 1.2
+ * Description: Registers Custom Post Type, Taxonomies, Meta Boxes, and CSV Import for the Anikeola CBT System.
+ * Version: 1.3
  * Author: Daniel Adebisi
  */
 
@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+// --- CPT and Taxonomy Registration (from Version 1.2 - no changes here) ---
 /**
  * Register CBT Question Custom Post Type.
  */
@@ -159,6 +160,7 @@ function anikeola_cbt_register_topic_taxonomy() {
 }
 add_action( 'init', 'anikeola_cbt_register_topic_taxonomy', 0 );
 
+// --- Meta Box for Answers (from Version 1.2 - no changes here) ---
 /**
  * Adds a meta box to the CBT Question post type edit screen.
  */
@@ -184,14 +186,13 @@ function anikeola_cbt_answers_meta_box_callback( $post ) {
     $answer_options = get_post_meta( $post->ID, '_anikeola_cbt_answer_options', true );
     $correct_answer_index = get_post_meta( $post->ID, '_anikeola_cbt_correct_answer_index', true );
 
-    if ( empty( $answer_options ) || !is_array($answer_options) ) { // Ensure it's an array
+    if ( empty( $answer_options ) || !is_array($answer_options) ) {
         $answer_options = array_fill( 0, 5, '' );
     } else {
-        // Ensure we always have at least 5 elements, padding with empty strings if necessary
         $answer_options = array_pad( $answer_options, 5, '' );
     }
     
-    $correct_answer_index = ( $correct_answer_index === '' || is_null($correct_answer_index) ) ? -1 : intval( $correct_answer_index ); // Use -1 if not set
+    $correct_answer_index = ( $correct_answer_index === '' || is_null($correct_answer_index) ) ? -1 : intval( $correct_answer_index );
 
     ?>
     <style>
@@ -201,7 +202,7 @@ function anikeola_cbt_answers_meta_box_callback( $post ) {
         .anikeola-cbt-answer-entry input[type="text"] { flex-grow: 1; padding: 6px 8px; border: 1px solid #8c8f94; border-radius: 3px; }
         .anikeola-cbt-answer-entry input[type="radio"] { margin-left: 15px; margin-right: 5px; }
         .anikeola-cbt-correct-label { font-size: 0.9em; color: #555; }
-        #anikeola_cbt_answers_meta_box_id .inside { padding-top: 0; margin-top:0; } /* Adjust padding for metabox */
+        #anikeola_cbt_answers_meta_box_id .inside { padding-top: 0; margin-top:0; }
         .anikeola-cbt-meta-box-description { margin-bottom: 15px; color: #555; font-style: italic; }
     </style>
 
@@ -222,8 +223,6 @@ function anikeola_cbt_answers_meta_box_callback( $post ) {
         <?php endfor; ?>
     </div>
     <?php
-    // TODO: Add fields for points per question if needed (CBT-FUNC-XXX)
-    // TODO: Add field for correct answer explanation if needed (CBT-FUNC-XXX)
 }
 
 /**
@@ -238,24 +237,25 @@ function anikeola_cbt_save_answers_meta_box_data( $post_id ) {
     if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
         return;
     }
-    if ( ! current_user_can( 'edit_post', $post_id ) ) {
+    if ( ! current_user_can( 'edit_post', $post_id ) ) { // Check for 'cbt_question' post type specifically
+        return;
+    }
+     // Ensure this is the 'cbt_question' post type before saving meta
+    if (get_post_type($post_id) != 'cbt_question') {
         return;
     }
 
-    // Save Answer Options
+
     if ( isset( $_POST['anikeola_cbt_answer_options'] ) && is_array( $_POST['anikeola_cbt_answer_options'] ) ) {
         $sanitized_options = array_map( 'sanitize_text_field', $_POST['anikeola_cbt_answer_options'] );
-        // Filter out empty options if you don't want to save them, or ensure a fixed number
-        $filtered_options = array_filter( $sanitized_options, function($value) { return $value !== ''; } ); 
-        // Or, to always save 5 (even if empty):
-        // $filtered_options = array_slice( $sanitized_options, 0, 5); 
-        // $filtered_options = array_pad( $filtered_options, 5, ''); // Pad with empty strings if less than 5
-        update_post_meta( $post_id, '_anikeola_cbt_answer_options', $filtered_options ); // Using filtered_options to save only non-empty ones
+        // Save all 5 options, even if some are empty, to maintain structure
+        $options_to_save = array_slice( $sanitized_options, 0, 5 );
+        $options_to_save = array_pad( $options_to_save, 5, ''); // Pad with empty strings if less than 5 submitted
+        update_post_meta( $post_id, '_anikeola_cbt_answer_options', $options_to_save );
     } else {
-        delete_post_meta( $post_id, '_anikeola_cbt_answer_options' ); // Or update with empty array
+        update_post_meta( $post_id, '_anikeola_cbt_answer_options', array_fill(0, 5, '') ); // Save 5 empty strings if no options submitted
     }
 
-    // Save Correct Answer Index
     if ( isset( $_POST['_anikeola_cbt_correct_answer_index'] ) ) {
         $correct_index = intval( $_POST['_anikeola_cbt_correct_answer_index'] );
         update_post_meta( $post_id, '_anikeola_cbt_correct_answer_index', $correct_index );
@@ -265,6 +265,235 @@ function anikeola_cbt_save_answers_meta_box_data( $post_id ) {
 }
 add_action( 'save_post_cbt_question', 'anikeola_cbt_save_answers_meta_box_data' );
 
+
+// --- NEW: CSV Import Functionality ---
+
+/**
+ * Add submenu page for CSV Import under "CBT Questions".
+ */
+function anikeola_cbt_add_import_submenu_page() {
+    add_submenu_page(
+        'edit.php?post_type=cbt_question', // Parent slug (for our CPT)
+        __( 'Import Questions', 'anikeola-cbt' ),    // Page title
+        __( 'Import CSV', 'anikeola-cbt' ),        // Menu title
+        'manage_options',                         // Capability required
+        'anikeola-cbt-import',                    // Menu slug
+        'anikeola_cbt_render_import_page'         // Function to display the page
+    );
+}
+add_action( 'admin_menu', 'anikeola_cbt_add_import_submenu_page' );
+
+/**
+ * Render the CSV Import page.
+ */
+function anikeola_cbt_render_import_page() {
+    ?>
+    <div class="wrap">
+        <h1><?php esc_html_e( 'Import CBT Questions from CSV', 'anikeola-cbt' ); ?></h1>
+        <p><?php esc_html_e( 'Upload a CSV file to import questions into the CBT system.', 'anikeola-cbt' ); ?></p>
+        <p>
+            <?php esc_html_e( 'Expected CSV Format (headerless, 11 columns):', 'anikeola-cbt' ); ?><br>
+            <code>Question Title, Answer 1, Answer 2, Answer 3, Answer 4, Answer 5 (optional), Correct Answer Index (1-5), Subject, Class Level, Topic, Question Description (optional)</code>
+        </p>
+        <p>
+            <em><?php esc_html_e( 'Example Row: Which of these is the powerhouse of the cell?,Nucleus,Mitochondria,Ribosome,Endoplasmic Reticulum,,2,Biology,JSS 1,Cell Structure,This question tests basic cell biology knowledge.', 'anikeola-cbt' ); ?></em><br>
+            <em>(This example has 4 answer options, so Answer 5 is blank. Answer 2 is correct. Question Description is included.)</em>
+        </p>
+
+        <form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+            <input type="hidden" name="action" value="anikeola_cbt_handle_csv_upload">
+            <?php wp_nonce_field( 'anikeola_cbt_csv_import_nonce', 'anikeola_cbt_csv_import_nonce_field' ); ?>
+            
+            <table class="form-table">
+                <tr valign="top">
+                    <th scope="row">
+                        <label for="cbt_csv_file"><?php esc_html_e( 'CSV File:', 'anikeola-cbt' ); ?></label>
+                    </th>
+                    <td>
+                        <input type="file" id="cbt_csv_file" name="cbt_csv_file" accept=".csv" required />
+                        <p class="description"><?php esc_html_e( 'Please ensure the file is UTF-8 encoded.', 'anikeola-cbt' ); ?></p>
+                    </td>
+                </tr>
+            </table>
+            <?php submit_button( __( 'Import Questions', 'anikeola-cbt' ) ); ?>
+        </form>
+    </div>
+    <?php
+}
+
+/**
+ * Handle the CSV file upload and process questions.
+ * Hooked to admin_post_{action_name}
+ */
+function anikeola_cbt_handle_csv_upload_action() {
+    // Verify nonce
+    if ( ! isset( $_POST['anikeola_cbt_csv_import_nonce_field'] ) || ! wp_verify_nonce( $_POST['anikeola_cbt_csv_import_nonce_field'], 'anikeola_cbt_csv_import_nonce' ) ) {
+        wp_die( esc_html__( 'Security check failed!', 'anikeola-cbt' ) );
+    }
+
+    // Check user capabilities
+    if ( ! current_user_can( 'manage_options' ) ) { // Or a more specific capability for managing questions
+        wp_die( esc_html__( 'You do not have sufficient permissions to perform this action.', 'anikeola-cbt' ) );
+    }
+
+    // Check if file was uploaded
+    if ( isset( $_FILES['cbt_csv_file'] ) && $_FILES['cbt_csv_file']['error'] == UPLOAD_ERR_OK ) {
+        $file_tmp_path = $_FILES['cbt_csv_file']['tmp_name'];
+        $file_name = $_FILES['cbt_csv_file']['name'];
+        $file_type = $_FILES['cbt_csv_file']['type'];
+
+        // Basic validation for file type (can be spoofed, but a first check)
+        $allowed_mime_types = array( 'text/csv', 'application/csv', 'text/plain', 'application/vnd.ms-excel' );
+        if ( ! in_array( $file_type, $allowed_mime_types ) ) {
+            wp_redirect( add_query_arg( array( 'page' => 'anikeola-cbt-import', 'message' => 'invalid_file_type' ), admin_url( 'edit.php?post_type=cbt_question' ) ) );
+            exit;
+        }
+
+        // Increase execution time and memory limit for potentially large CSV files
+        @set_time_limit(0);
+        @ini_set('memory_limit', '256M');
+
+        $imported_count = 0;
+        $failed_rows = array();
+        $row_number = 0;
+
+        if ( ( $handle = fopen( $file_tmp_path, 'r' ) ) !== false ) {
+            while ( ( $data = fgetcsv( $handle, 2000, ',' ) ) !== false ) { // Read up to 2000 chars per line
+                $row_number++;
+                // Expected 11 columns based on our defined format
+                // Question Title, Ans1, Ans2, Ans3, Ans4, Ans5, CorrectIndex, Subject, ClassLevel, Topic, Description
+                if ( count( $data ) < 10 ) { // Minimum 10 columns (Description can be missing)
+                    $failed_rows[] = $row_number;
+                    continue;
+                }
+
+                // Sanitize and prepare data
+                $question_title = sanitize_text_field( trim( $data[0] ) );
+                $answer_options_raw = array_slice( $data, 1, 5 ); // Get up to 5 answers
+                $answer_options = array();
+                foreach($answer_options_raw as $opt) {
+                    $answer_options[] = sanitize_text_field(trim($opt));
+                }
+                // Ensure we always have 5 answer options, padding with empty if fewer
+                $answer_options = array_pad($answer_options, 5, '');
+
+
+                $correct_answer_index_raw = isset($data[6]) ? trim($data[6]) : '';
+                // Adjust index: CSV is 1-based, our meta is 0-based
+                $correct_answer_index = ( is_numeric($correct_answer_index_raw) && $correct_answer_index_raw >= 1 && $correct_answer_index_raw <= 5 ) ? intval( $correct_answer_index_raw ) - 1 : -1;
+
+                $subject_name     = isset($data[7]) ? sanitize_text_field( trim( $data[7] ) ) : '';
+                $class_level_name = isset($data[8]) ? sanitize_text_field( trim( $data[8] ) ) : '';
+                $topic_name       = isset($data[9]) ? sanitize_text_field( trim( $data[9] ) ) : '';
+                $question_content = isset($data[10]) ? wp_kses_post( trim( $data[10] ) ) : ''; // Allow some HTML for description
+
+                if ( empty( $question_title ) || $correct_answer_index === -1 ) {
+                    $failed_rows[] = $row_number;
+                    continue;
+                }
+
+                // Create new cbt_question post
+                $post_data = array(
+                    'post_title'   => $question_title,
+                    'post_content' => $question_content,
+                    'post_type'    => 'cbt_question',
+                    'post_status'  => 'publish', // Or 'draft' if you want to review them
+                );
+                $post_id = wp_insert_post( $post_data );
+
+                if ( $post_id && ! is_wp_error( $post_id ) ) {
+                    // Save answer options and correct index
+                    update_post_meta( $post_id, '_anikeola_cbt_answer_options', $answer_options );
+                    update_post_meta( $post_id, '_anikeola_cbt_correct_answer_index', $correct_answer_index );
+
+                    // Assign taxonomies
+                    if ( ! empty( $subject_name ) ) {
+                        wp_set_object_terms( $post_id, $subject_name, 'cbt_subject', false );
+                    }
+                    if ( ! empty( $class_level_name ) ) {
+                        wp_set_object_terms( $post_id, $class_level_name, 'cbt_class_level', false );
+                    }
+                    if ( ! empty( $topic_name ) ) {
+                        wp_set_object_terms( $post_id, $topic_name, 'cbt_topic', false );
+                    }
+                    $imported_count++;
+                } else {
+                    $failed_rows[] = $row_number;
+                }
+            }
+            fclose( $handle );
+
+            // Redirect back with a success/error message
+            $redirect_args = array(
+                'page' => 'anikeola-cbt-import',
+                'message' => 'imported',
+                'count' => $imported_count
+            );
+            if(!empty($failed_rows)) {
+                $redirect_args['failed_count'] = count($failed_rows);
+                // Optionally, pass failed row numbers if not too many: $redirect_args['failed_rows'] = implode(',', $failed_rows);
+            }
+            wp_redirect( add_query_arg( $redirect_args, admin_url( 'edit.php?post_type=cbt_question' ) ) );
+            exit;
+
+        } else {
+            wp_redirect( add_query_arg( array( 'page' => 'anikeola-cbt-import', 'message' => 'file_read_error' ), admin_url( 'edit.php?post_type=cbt_question' ) ) );
+            exit;
+        }
+    } else {
+        // No file uploaded or an error occurred
+        $error_code = isset($_FILES['cbt_csv_file']['error']) ? $_FILES['cbt_csv_file']['error'] : 'unknown';
+        wp_redirect( add_query_arg( array( 'page' => 'anikeola-cbt-import', 'message' => 'upload_error', 'code' => $error_code ), admin_url( 'edit.php?post_type=cbt_question' ) ) );
+        exit;
+    }
+}
+add_action( 'admin_post_anikeola_cbt_handle_csv_upload', 'anikeola_cbt_handle_csv_upload_action' );
+
+/**
+ * Display admin notices for CSV import.
+ */
+function anikeola_cbt_import_admin_notices() {
+    if ( ! isset( $_GET['page'] ) || 'anikeola-cbt-import' !== $_GET['page'] ) {
+        return;
+    }
+
+    if ( isset( $_GET['message'] ) ) {
+        $message = '';
+        $type = 'info'; // Default type
+
+        switch ( $_GET['message'] ) {
+            case 'imported':
+                $count = isset( $_GET['count'] ) ? intval( $_GET['count'] ) : 0;
+                $message = sprintf( esc_html__( '%d questions imported successfully.', 'anikeola-cbt' ), $count );
+                if(isset($_GET['failed_count']) && intval($_GET['failed_count']) > 0) {
+                    $message .= ' ' . sprintf( esc_html__( '%d rows failed to import.', 'anikeola-cbt' ), intval($_GET['failed_count']) );
+                }
+                $type = 'success';
+                break;
+            case 'invalid_file_type':
+                $message = esc_html__( 'Error: Invalid file type. Please upload a CSV file.', 'anikeola-cbt' );
+                $type = 'error';
+                break;
+            case 'file_read_error':
+                $message = esc_html__( 'Error: Could not read the uploaded file.', 'anikeola-cbt' );
+                $type = 'error';
+                break;
+            case 'upload_error':
+                $code = isset($_GET['code']) ? $_GET['code'] : 'unknown';
+                $message = sprintf(esc_html__( 'Error: File upload failed. Code: %s', 'anikeola-cbt' ), $code);
+                $type = 'error';
+                break;
+        }
+
+        if ( $message ) {
+            echo '<div class="notice notice-' . esc_attr( $type ) . ' is-dismissible"><p>' . $message . '</p></div>';
+        }
+    }
+}
+add_action( 'admin_notices', 'anikeola_cbt_import_admin_notices' );
+
+
+// --- Activation Hook (from Version 1.2 - no changes here) ---
 /**
  * Flush rewrite rules on plugin activation.
  */
