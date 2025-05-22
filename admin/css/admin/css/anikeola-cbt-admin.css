@@ -1,0 +1,185 @@
+/*
+ * Anikeola CBT System - Front-end Styles
+ * Version: 1.8 (Matches plugin version where this file is first populated)
+ */
+
+.anikeola-cbt-exam-wrapper {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.anikeola-cbt-exam-title {
+    font-size: 24px;
+    color: #333;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.anikeola-cbt-timer {
+    font-size: 16px;
+    font-weight: bold;
+    color: #d9534f; /* Red color for timer */
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: #fff;
+    border: 1px dashed #d9534f;
+    border-radius: 4px;
+}
+
+#anikeola-cbt-countdown { /* Generic ID if only one timer on page, or use specific like in shortcode */
+    padding: 5px 10px;
+    background-color: #f2dede;
+    border-radius: 3px;
+}
+
+.anikeola-cbt-exam-instructions {
+    background-color: #fff;
+    padding: 15px;
+    border: 1px solid #e3e3e3;
+    border-radius: 4px;
+    margin-bottom: 25px;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.anikeola-cbt-questions-container {
+    margin-bottom: 25px;
+}
+
+.anikeola-cbt-question {
+    background-color: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #e3e3e3;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.anikeola-cbt-question-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #444;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.anikeola-cbt-question-description {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 15px;
+    padding-left: 10px;
+    border-left: 3px solid #f0f0f0;
+}
+
+.anikeola-cbt-answer-options {
+    list-style-type: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.anikeola-cbt-answer-options li {
+    margin-bottom: 12px;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    background-color: #fdfdfd;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.anikeola-cbt-answer-options li:hover {
+    background-color: #f5f5f5;
+}
+
+.anikeola-cbt-answer-options li label {
+    display: flex; /* Use flex for alignment */
+    align-items: center; /* Vertically align items */
+    font-size: 16px;
+    color: #333;
+    cursor: pointer;
+    width: 100%;
+}
+
+.anikeola-cbt-answer-options li input[type="radio"] {
+    margin-right: 12px;
+    transform: scale(1.2); /* Slightly larger radio buttons */
+    cursor: pointer;
+}
+
+/* Style for selected answer (can be enhanced with JS) */
+.anikeola-cbt-answer-options li input[type="radio"]:checked + span { /* Assuming text is wrapped in span, or style label */
+    font-weight: bold;
+}
+.anikeola-cbt-answer-options li.selected-answer { /* If JS adds a class */
+    background-color: #e7f3ff;
+    border-color: #9cceff;
+}
+
+
+.anikeola-cbt-submit-button {
+    display: block;
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    background-color: #5cb85c; /* Green color */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.anikeola-cbt-submit-button:hover {
+    background-color: #4cae4c;
+}
+
+.anikeola-cbt-exam-result {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f0f8ff; /* Light blue for results */
+}
+
+.anikeola-cbt-exam-result h3 {
+    margin-top: 0;
+    color: #31708f;
+}
+
+/* Basic responsiveness */
+@media (max-width: 600px) {
+    .anikeola-cbt-exam-wrapper {
+        margin: 10px;
+        padding: 15px;
+    }
+    .anikeola-cbt-exam-title {
+        font-size: 20px;
+    }
+    .anikeola-cbt-question-title {
+        font-size: 16px;
+    }
+    .anikeola-cbt-answer-options li label {
+        font-size: 15px;
+    }
+    .anikeola-cbt-submit-button {
+        font-size: 16px;
+        padding: 10px 15px;
+    }
+}
+.anikeola-cbt-exam-footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #777;
+}
