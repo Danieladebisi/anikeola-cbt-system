@@ -1,6 +1,6 @@
 /**
  * Anikeola CBT System - Front-end Scripts
- * Version: 1.8 (Matches plugin version where this file is first populated)
+ * Version: 1.9
  */
 (function($) {
     'use strict';
@@ -13,28 +13,23 @@
             const $timerDisplay = $examWrapper.find('#anikeola-cbt-countdown-' + examId);
             const $examForm = $examWrapper.find('#anikeola-cbt-exam-form-' + examId);
             const $resultDisplay = $examWrapper.find('#anikeola-cbt-exam-result-' + examId);
+            const $submitButton = $examWrapper.find('.anikeola-cbt-submit-button');
+            let timerInterval; // To store the interval ID
 
             // --- Countdown Timer ---
             if ($timerDisplay.length) {
                 let timeLeft = parseInt($timerDisplay.data('time-limit'), 10);
                 
                 if (isNaN(timeLeft) || timeLeft <= 0) {
-                    // No valid time limit or time is already up (e.g., if page was reloaded)
-                    // You might want to hide the timer or show "Time's up!"
-                    $timerDisplay.text('00:00:00');
+                    $timerDisplay.text(anikeolaCbtData.text_times_up || '00:00:00');
                 } else {
-                    const timerInterval = setInterval(function() {
+                    timerInterval = setInterval(function() {
                         if (timeLeft <= 0) {
                             clearInterval(timerInterval);
-                            $timerDisplay.text('Time\'s Up!');
-                            // Auto-submit the form (basic for now, can be enhanced)
-                            // alert('Time is up! Submitting your exam.');
-                            // $examForm.submit(); // This would be a standard form submission
-                            // For AJAX, you'd call your AJAX submission function here.
-                            // For now, just disable inputs
-                            $examForm.find('input, button').prop('disabled', true);
-                            $examWrapper.find('.anikeola-cbt-submit-button').text('Time Expired - Submitted').addClass('disabled');
-
+                            $timerDisplay.text(anikeolaCbtData.text_times_up || 'Time\'s Up!');
+                            // Auto-submit the form
+                            $submitButton.text(anikeolaCbtData.text_time_expired_submitted || 'Time Expired - Submitting...').prop('disabled', true);
+                            submitExam(); 
                         } else {
                             timeLeft--;
                             const hours = Math.floor(timeLeft / 3600);
@@ -53,54 +48,79 @@
 
             // --- Answer Selection Visual Feedback (Optional Enhancement) ---
             $examForm.find('.anikeola-cbt-answer-options li input[type="radio"]').on('change', function() {
-                // Remove 'selected-answer' class from all options in the same question
                 $(this).closest('.anikeola-cbt-answer-options').find('li').removeClass('selected-answer');
-                // Add 'selected-answer' class to the parent li of the checked radio
                 if ($(this).is(':checked')) {
                     $(this).closest('li').addClass('selected-answer');
                 }
             });
 
+            // --- Function to handle exam submission ---
+            function submitExam() {
+                // Disable form elements to prevent multiple submissions
+                $examForm.find('input, button').prop('disabled', true);
+                $submitButton.text('Submitting...'); // Update button text
 
-            // --- Handle Exam Submission (Basic for now) ---
+                const formData = $examForm.serializeArray();
+                let answersData = {};
+                // Reformat answers for easier processing on the backend
+                $.each(formData, function(i, field) {
+                    if (field.name.startsWith('answers[')) {
+                        // Extract question ID from name="answers[QUESTION_ID]"
+                        const qIdMatch = field.name.match(/answers\[(\d+)\]/);
+                        if (qIdMatch && qIdMatch[1]) {
+                            answersData[qIdMatch[1]] = field.value;
+                        }
+                    }
+                });
+
+                $.ajax({
+                    url: anikeolaCbtData.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'anikeola_cbt_submit_exam_answers',
+                        nonce: anikeolaCbtData.nonce,
+                        exam_id: examId,
+                        user_id: $examForm.find('input[name="user_id"]').val(), // Get user ID from hidden field
+                        answers: answersData 
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            let resultHtml = '<h3>' + (anikeolaCbtData.text_exam_submitted_header || 'Exam Results') + '</h3>';
+                            resultHtml += '<p>' + (anikeolaCbtData.text_your_score_is || 'Your score:') + ' ' + response.data.score + ' / ' + response.data.total_questions + '</p>';
+                            if(response.data.percentage !== undefined) {
+                                resultHtml += '<p>' + (anikeolaCbtData.text_percentage || 'Percentage:') + ' ' + response.data.percentage + '%</p>';
+                            }
+                            if(response.data.passed !== undefined) {
+                                resultHtml += '<p><strong>' + (response.data.passed ? (anikeolaCbtData.text_passed || 'Status: Passed') : (anikeolaCbtData.text_failed || 'Status: Failed')) + '</strong></p>';
+                            }
+                            // Add more details from response.data if needed (e.g., detailed feedback)
+                            $resultDisplay.html(resultHtml).show();
+                            $examForm.hide();
+                            if ($timerDisplay.length) { 
+                                clearInterval(timerInterval); // Stop timer if still running
+                                $timerDisplay.hide(); 
+                            }
+                        } else {
+                            $resultDisplay.html('<p class="error">' + (response.data.message || (anikeolaCbtData.text_error_submitting || 'Error submitting exam. Please try again.')) + '</p>').show();
+                            $examForm.find('input, button').prop('disabled', false); // Re-enable form
+                            $submitButton.text(anikeolaCbtData.text_submit_exam || 'Submit Exam');
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        $resultDisplay.html('<p class="error">' + (anikeolaCbtData.text_ajax_error || 'An AJAX error occurred:') + ' ' + textStatus + ' - ' + errorThrown + '</p>').show();
+                        $examForm.find('input, button').prop('disabled', false); // Re-enable form
+                        $submitButton.text(anikeolaCbtData.text_submit_exam || 'Submit Exam');
+                        console.error('AJAX Error:', textStatus, errorThrown, jqXHR.responseText);
+                    }
+                });
+            }
+
+            // --- Handle Exam Submission on Button Click ---
             $examForm.on('submit', function(e) {
-                e.preventDefault(); // Prevent default form submission for now
-
-                // Collect answers (Example - will be used for AJAX later)
-                const formData = $(this).serializeArray();
-                console.log('Exam Submitted. Data:', formData); // For debugging
-                
-                // TODO: Implement AJAX submission to WordPress backend for processing
-                // For now, just show a placeholder message and hide the form.
-
-                // Example:
-                // $.ajax({
-                //     url: anikeolaCbtData.ajax_url, // Passed via wp_localize_script
-                //     type: 'POST',
-                //     data: {
-                //         action: 'anikeola_cbt_submit_exam_answers', // PHP action hook
-                //         nonce: anikeolaCbtData.nonce,
-                //         exam_id: examId,
-                //         answers: formData // Or process formData to send a cleaner structure
-                //     },
-                //     success: function(response) {
-                //         // Assume response is JSON with score, feedback, etc.
-                //         $resultDisplay.html('<h3>Results</h3><p>Your score: ' + response.score + '</p>').show();
-                //         $examForm.hide();
-                //         if ($timerDisplay.length) { $timerDisplay.hide(); }
-                //     },
-                //     error: function(errorThrown) {
-                //         $resultDisplay.html('<p>Error submitting exam. Please try again.</p>').show();
-                //         console.error('Error:', errorThrown);
-                //     }
-                // });
-
-                // Placeholder action:
-                $examForm.hide();
-                if ($timerDisplay.length) { $timerDisplay.hide(); }
-                $resultDisplay.html('<h3><?php esc_html_e( "Exam Submitted!", "anikeola-cbt" ); ?></h3><p><?php esc_html_e( "Your results will be processed. (Automatic result display coming soon).", "anikeola-cbt" ); ?></p>').show();
-                alert('Exam Submitted! (Full processing and result display is the next step).');
-
+                e.preventDefault(); 
+                if (confirm(anikeolaCbtData.text_confirm_submission || 'Are you sure you want to submit your exam?')) {
+                    submitExam();
+                }
             });
 
         }); // end .anikeola-cbt-exam-wrapper.each
