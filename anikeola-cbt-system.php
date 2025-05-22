@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Anikeola CBT System Core
  * Description: Registers Custom Post Type, Taxonomies, and Meta Boxes for the Anikeola CBT System.
- * Version: 1.1
+ * Version: 1.2
  * Author: Daniel Adebisi
  */
 
@@ -48,7 +48,7 @@ function anikeola_cbt_register_question_cpt() {
         'label'                 => __( 'CBT Question', 'anikeola-cbt' ),
         'description'           => __( 'Custom Post Type for CBT Questions', 'anikeola-cbt' ),
         'labels'                => $labels,
-        'supports'              => array( 'title', 'editor' ), // Removed 'custom-fields' as we'll build our own meta box
+        'supports'              => array( 'title', 'editor' ), // 'title' for question prompt, 'editor' for detailed description/image
         'taxonomies'            => array( 'cbt_subject', 'cbt_class_level', 'cbt_topic' ),
         'hierarchical'          => false,
         'public'                => true,
@@ -164,148 +164,117 @@ add_action( 'init', 'anikeola_cbt_register_topic_taxonomy', 0 );
  */
 function anikeola_cbt_add_answers_meta_box() {
     add_meta_box(
-        'anikeola_cbt_answers_meta_box_id', // Unique ID for the meta box
-        __( 'Question Answers & Options', 'anikeola-cbt' ), // Title of the meta box
-        'anikeola_cbt_answers_meta_box_callback', // Callback function to render the HTML
-        'cbt_question', // The CPT slug where this meta box will appear
-        'normal', // Context (normal, side, advanced)
-        'high' // Priority (high, core, default, low)
+        'anikeola_cbt_answers_meta_box_id',
+        __( 'Question Answers & Options', 'anikeola-cbt' ),
+        'anikeola_cbt_answers_meta_box_callback',
+        'cbt_question',
+        'normal',
+        'high'
     );
 }
-add_action( 'add_meta_boxes_cbt_question', 'anikeola_cbt_add_answers_meta_box' ); // Note the hook specific to the CPT
+add_action( 'add_meta_boxes_cbt_question', 'anikeola_cbt_add_answers_meta_box' );
 
 /**
  * Callback function to render the HTML for the answers meta box.
- *
  * @param WP_Post $post The post object.
  */
 function anikeola_cbt_answers_meta_box_callback( $post ) {
-    // Add a nonce field for security
     wp_nonce_field( 'anikeola_cbt_save_answers_meta_box_data', 'anikeola_cbt_answers_meta_box_nonce' );
 
-    // Retrieve existing values from the database
     $answer_options = get_post_meta( $post->ID, '_anikeola_cbt_answer_options', true );
     $correct_answer_index = get_post_meta( $post->ID, '_anikeola_cbt_correct_answer_index', true );
 
-    // Set defaults if no values exist
-    if ( empty( $answer_options ) ) {
-        $answer_options = array_fill( 0, 5, '' ); // Default to 5 empty answer options
-    }
-    if ( $correct_answer_index === '' ) { // Check for empty string as it might be saved as such if no selection
-        $correct_answer_index = null; // Or -1, or some other indicator of "not set"
+    if ( empty( $answer_options ) || !is_array($answer_options) ) { // Ensure it's an array
+        $answer_options = array_fill( 0, 5, '' );
     } else {
-        $correct_answer_index = intval( $correct_answer_index );
+        // Ensure we always have at least 5 elements, padding with empty strings if necessary
+        $answer_options = array_pad( $answer_options, 5, '' );
     }
+    
+    $correct_answer_index = ( $correct_answer_index === '' || is_null($correct_answer_index) ) ? -1 : intval( $correct_answer_index ); // Use -1 if not set
 
-    // --- Styling for the meta box ---
-    echo '<style>
-        .anikeola-cbt-answer-row { margin-bottom: 15px; display: flex; align-items: center; }
-        .anikeola-cbt-answer-row label { margin-right: 10px; min-width: 80px; }
-        .anikeola-cbt-answer-row input[type="text"] { width: 70%; margin-right: 10px; }
-        .anikeola-cbt-answer-row input[type="radio"] { margin-left: 5px; }
-        .anikeola-cbt-meta-box-table { width: 100%; border-collapse: collapse; }
-        .anikeola-cbt-meta-box-table td, .anikeola-cbt-meta-box-table th { padding: 8px; text-align: left; }
-        .anikeola-cbt-meta-box-table th { font-weight: bold; }
-    </style>';
+    ?>
+    <style>
+        .anikeola-cbt-answers-container { display: flex; flex-direction: column; gap: 10px; }
+        .anikeola-cbt-answer-entry { display: flex; align-items: center; padding: 8px; border: 1px solid #ccd0d4; border-radius: 4px; background-color: #fdfdfd;}
+        .anikeola-cbt-answer-entry label { margin-right: 8px; font-weight: 600; min-width: 70px; }
+        .anikeola-cbt-answer-entry input[type="text"] { flex-grow: 1; padding: 6px 8px; border: 1px solid #8c8f94; border-radius: 3px; }
+        .anikeola-cbt-answer-entry input[type="radio"] { margin-left: 15px; margin-right: 5px; }
+        .anikeola-cbt-correct-label { font-size: 0.9em; color: #555; }
+        #anikeola_cbt_answers_meta_box_id .inside { padding-top: 0; margin-top:0; } /* Adjust padding for metabox */
+        .anikeola-cbt-meta-box-description { margin-bottom: 15px; color: #555; font-style: italic; }
+    </style>
 
-    // --- HTML for the meta box fields ---
-    echo '<p>' . __('Enter up to 5 answer options for this question and select the correct one.', 'anikeola-cbt') . '</p>';
-    echo '<table class="anikeola-cbt-meta-box-table">';
-    echo '<thead><tr><th>' . __('Option', 'anikeola-cbt') . '</th><th>' . __('Answer Text', 'anikeola-cbt') . '</th><th>' . __('Is Correct?', 'anikeola-cbt') . '</th></tr></thead>';
-    echo '<tbody>';
-
-    $number_of_options = 5; // Define how many answer options to show
-    for ( $i = 0; $i < $number_of_options; $i++ ) {
-        $option_value = isset( $answer_options[$i] ) ? esc_attr( $answer_options[$i] ) : '';
-        $is_checked = ( $correct_answer_index === $i ); // Check if this option is the correct one
-
-        echo '<tr>';
-        echo '<td><label for="anikeola_cbt_answer_option_' . $i . '">' . sprintf( __('Option %d:', 'anikeola-cbt'), $i + 1 ) . '</label></td>';
-        echo '<td><input type="text" id="anikeola_cbt_answer_option_' . $i . '" name="anikeola_cbt_answer_options[]" value="' . $option_value . '" style="width: 90%;" /></td>';
-        echo '<td><input type="radio" name="_anikeola_cbt_correct_answer_index" value="' . $i . '" ' . checked( $is_checked, true, false ) . ' /></td>';
-        echo '</tr>';
-    }
-    echo '</tbody></table>';
-
+    <p class="anikeola-cbt-meta-box-description"><?php esc_html_e( 'Enter up to 5 answer options for this question and select the correct one.', 'anikeola-cbt' ); ?></p>
+    <div class="anikeola-cbt-answers-container">
+        <?php
+        $number_of_options = 5;
+        for ( $i = 0; $i < $number_of_options; $i++ ) :
+            $option_value = isset( $answer_options[$i] ) ? esc_attr( $answer_options[$i] ) : '';
+            $is_checked = ( $correct_answer_index === $i );
+        ?>
+            <div class="anikeola-cbt-answer-entry">
+                <label for="anikeola_cbt_answer_option_<?php echo $i; ?>"><?php printf( esc_html__( 'Option %d:', 'anikeola-cbt' ), $i + 1 ); ?></label>
+                <input type="text" id="anikeola_cbt_answer_option_<?php echo $i; ?>" name="anikeola_cbt_answer_options[]" value="<?php echo $option_value; ?>" />
+                <input type="radio" id="anikeola_cbt_correct_<?php echo $i; ?>" name="_anikeola_cbt_correct_answer_index" value="<?php echo $i; ?>" <?php checked( $is_checked, true ); ?> />
+                <label for="anikeola_cbt_correct_<?php echo $i; ?>" class="anikeola-cbt-correct-label"><?php esc_html_e( 'Correct', 'anikeola-cbt' ); ?></label>
+            </div>
+        <?php endfor; ?>
+    </div>
+    <?php
     // TODO: Add fields for points per question if needed (CBT-FUNC-XXX)
     // TODO: Add field for correct answer explanation if needed (CBT-FUNC-XXX)
 }
 
 /**
  * Save the meta box data when the post is saved.
- *
  * @param int $post_id The ID of the post being saved.
  */
 function anikeola_cbt_save_answers_meta_box_data( $post_id ) {
-    // Check if our nonce is set.
-    if ( ! isset( $_POST['anikeola_cbt_answers_meta_box_nonce'] ) ) {
+    if ( ! isset( $_POST['anikeola_cbt_answers_meta_box_nonce'] ) ||
+         ! wp_verify_nonce( $_POST['anikeola_cbt_answers_meta_box_nonce'], 'anikeola_cbt_save_answers_meta_box_data' ) ) {
         return;
     }
-    // Verify that the nonce is valid.
-    if ( ! wp_verify_nonce( $_POST['anikeola_cbt_answers_meta_box_nonce'], 'anikeola_cbt_save_answers_meta_box_data' ) ) {
-        return;
-    }
-    // If this is an autosave, our form has not been submitted, so we don't want to do anything.
     if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
         return;
     }
-    // Check the user's permissions.
-    if ( isset( $_POST['post_type'] ) && 'cbt_question' == $_POST['post_type'] ) {
-        if ( ! current_user_can( 'edit_post', $post_id ) ) {
-            return;
-        }
+    if ( ! current_user_can( 'edit_post', $post_id ) ) {
+        return;
+    }
+
+    // Save Answer Options
+    if ( isset( $_POST['anikeola_cbt_answer_options'] ) && is_array( $_POST['anikeola_cbt_answer_options'] ) ) {
+        $sanitized_options = array_map( 'sanitize_text_field', $_POST['anikeola_cbt_answer_options'] );
+        // Filter out empty options if you don't want to save them, or ensure a fixed number
+        $filtered_options = array_filter( $sanitized_options, function($value) { return $value !== ''; } ); 
+        // Or, to always save 5 (even if empty):
+        // $filtered_options = array_slice( $sanitized_options, 0, 5); 
+        // $filtered_options = array_pad( $filtered_options, 5, ''); // Pad with empty strings if less than 5
+        update_post_meta( $post_id, '_anikeola_cbt_answer_options', $filtered_options ); // Using filtered_options to save only non-empty ones
     } else {
-        // This check is for other post types, not strictly necessary here since we hooked to 'save_post_cbt_question'
-        // but good practice if hooking to generic 'save_post'.
-        if ( ! current_user_can( 'edit_page', $post_id ) ) { // Or 'edit_post' if it's a generic post
-            return;
-        }
+        delete_post_meta( $post_id, '_anikeola_cbt_answer_options' ); // Or update with empty array
     }
 
-    // --- Save Answer Options ---
-    if ( isset( $_POST['anikeola_cbt_answer_options'] ) ) {
-        $sanitized_options = array();
-        // Sanitize each answer option
-        foreach ( (array) $_POST['anikeola_cbt_answer_options'] as $option ) {
-            $sanitized_options[] = sanitize_text_field( $option );
-        }
-        update_post_meta( $post_id, '_anikeola_cbt_answer_options', $sanitized_options );
-    }
-
-    // --- Save Correct Answer Index ---
-    // Check if the radio button was selected
+    // Save Correct Answer Index
     if ( isset( $_POST['_anikeola_cbt_correct_answer_index'] ) ) {
         $correct_index = intval( $_POST['_anikeola_cbt_correct_answer_index'] );
         update_post_meta( $post_id, '_anikeola_cbt_correct_answer_index', $correct_index );
     } else {
-        // If no radio button is selected (e.g., if it's a new question and none was picked, or if it was somehow cleared)
-        // You might want to delete the meta or save a specific "not set" value like -1 or null.
-        // For now, let's delete it if not set, or you can choose to save a default.
         delete_post_meta( $post_id, '_anikeola_cbt_correct_answer_index' );
     }
-
-    // TODO: Save points per question if the field exists
-    // TODO: Save correct answer explanation if the field exists
 }
-// Use 'save_post_{post_type}' hook for better performance if you know the post type.
 add_action( 'save_post_cbt_question', 'anikeola_cbt_save_answers_meta_box_data' );
-
 
 /**
  * Flush rewrite rules on plugin activation.
- * This is important for the CPT and taxonomy slugs to work correctly.
  */
 function anikeola_cbt_rewrite_flush() {
-    // First, register CPTs and taxonomies
     anikeola_cbt_register_question_cpt();
     anikeola_cbt_register_subject_taxonomy();
     anikeola_cbt_register_class_level_taxonomy();
     anikeola_cbt_register_topic_taxonomy();
-
-    // Then, flush the rules
     flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'anikeola_cbt_rewrite_flush' );
-// register_deactivation_hook( __FILE__, 'flush_rewrite_rules' ); // Optional: Flush on deactivation too
 
 ?>
