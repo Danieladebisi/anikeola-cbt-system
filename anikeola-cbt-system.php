@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Anikeola CBT System Core
  * Description: Registers CPTs, Taxonomies, Meta Boxes, CSV Import, and Exam functionality for the Anikeola CBT System.
- * Version: 2.2
+ * Version: 2.3
  * Author: Daniel Adebisi
  */
 
@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// --- CBT Question Custom Post Type and Taxonomies ---
+// --- CBT Question Custom Post Type and Taxonomies (No changes from Version 2.2) ---
 /**
  * Register CBT Question Custom Post Type.
  */
@@ -115,7 +115,7 @@ function anikeola_cbt_register_exam_cpt() {
 add_action( 'init', 'anikeola_cbt_register_exam_cpt', 0 );
 
 
-// Taxonomies (Subject, Class Level, Topic)
+// Taxonomies (Subject, Class Level, Topic) - No changes from Version 2.2
 function anikeola_cbt_register_subject_taxonomy() {
     $labels = array('name' => _x( 'Subjects', 'taxonomy general name', 'anikeola-cbt' ), 'singular_name' => _x( 'Subject', 'taxonomy singular name', 'anikeola-cbt' ), 'menu_name' => __( 'Subjects', 'anikeola-cbt' ),);
     $args = array('hierarchical' => true, 'labels' => $labels, 'show_ui' => true, 'show_admin_column' => true, 'query_var' => true, 'rewrite' => array( 'slug' => 'cbt-subject' ), 'show_in_rest' => true,);
@@ -138,7 +138,7 @@ function anikeola_cbt_register_topic_taxonomy() {
 add_action( 'init', 'anikeola_cbt_register_topic_taxonomy', 0 );
 
 
-// --- Meta Box for Question Answers ---
+// --- Meta Box for Question Answers (No changes from Version 2.2) ---
 function anikeola_cbt_add_answers_meta_box() {
     add_meta_box('anikeola_cbt_answers_meta_box_id', __( 'Question Options', 'anikeola-cbt' ), 'anikeola_cbt_answers_meta_box_callback', 'cbt_question', 'normal', 'high');
 }
@@ -198,7 +198,7 @@ function anikeola_cbt_save_answers_meta_box_data( $post_id ) {
 add_action( 'save_post_cbt_question', 'anikeola_cbt_save_answers_meta_box_data' );
 
 
-// --- Meta Box for Exam Settings ---
+// --- Meta Box for Exam Settings - UPDATED for Randomization ---
 function anikeola_cbt_add_exam_settings_meta_box() {
     add_meta_box('anikeola_cbt_exam_settings_meta_box_id',__( 'Exam Settings', 'anikeola-cbt' ),'anikeola_cbt_exam_settings_meta_box_callback','cbt_exam','normal','high');
 }
@@ -209,12 +209,30 @@ function anikeola_cbt_exam_settings_meta_box_callback( $post ) {
     $time_limit = get_post_meta( $post->ID, '_anikeola_cbt_time_limit', true );
     $passing_score = get_post_meta( $post->ID, '_anikeola_cbt_passing_score', true );
     $attempts_allowed = get_post_meta( $post->ID, '_anikeola_cbt_attempts_allowed', true );
+    $randomize_questions = get_post_meta( $post->ID, '_anikeola_cbt_randomize_questions', true );
+    $randomize_options = get_post_meta( $post->ID, '_anikeola_cbt_randomize_options', true );
     ?>
     <table class="form-table">
         <tbody>
             <tr><th scope="row"><label for="anikeola_cbt_time_limit"><?php esc_html_e( 'Time Limit (minutes)', 'anikeola-cbt' ); ?></label></th><td><input type="number" id="anikeola_cbt_time_limit" name="_anikeola_cbt_time_limit" value="<?php echo esc_attr( $time_limit ); ?>" min="0" step="1" /><p class="description"><?php esc_html_e( 'Enter 0 or leave blank for no time limit.', 'anikeola-cbt' ); ?></p></td></tr>
             <tr><th scope="row"><label for="anikeola_cbt_passing_score"><?php esc_html_e( 'Passing Score (%)', 'anikeola-cbt' ); ?></label></th><td><input type="number" id="anikeola_cbt_passing_score" name="_anikeola_cbt_passing_score" value="<?php echo esc_attr( $passing_score ); ?>" min="0" max="100" step="1" /><p class="description"><?php esc_html_e( 'Enter a percentage (0-100).', 'anikeola-cbt' ); ?></p></td></tr>
             <tr><th scope="row"><label for="anikeola_cbt_attempts_allowed"><?php esc_html_e( 'Attempts Allowed', 'anikeola-cbt' ); ?></label></th><td><input type="number" id="anikeola_cbt_attempts_allowed" name="_anikeola_cbt_attempts_allowed" value="<?php echo esc_attr( $attempts_allowed ); ?>" min="0" step="1" /><p class="description"><?php esc_html_e( 'Enter 0 or leave blank for unlimited attempts.', 'anikeola-cbt' ); ?></p></td></tr>
+            <tr>
+                <th scope="row"><?php esc_html_e( 'Randomization', 'anikeola-cbt' ); ?></th>
+                <td>
+                    <fieldset>
+                        <label for="anikeola_cbt_randomize_questions">
+                            <input type="checkbox" name="_anikeola_cbt_randomize_questions" id="anikeola_cbt_randomize_questions" value="1" <?php checked( $randomize_questions, '1' ); ?> />
+                            <?php esc_html_e( 'Randomize Question Order', 'anikeola-cbt' ); ?>
+                        </label>
+                        <br>
+                        <label for="anikeola_cbt_randomize_options">
+                            <input type="checkbox" name="_anikeola_cbt_randomize_options" id="anikeola_cbt_randomize_options" value="1" <?php checked( $randomize_options, '1' ); ?> />
+                            <?php esc_html_e( 'Randomize Answer Options Order (for multiple-choice questions)', 'anikeola-cbt' ); ?>
+                        </label>
+                    </fieldset>
+                </td>
+            </tr>
         </tbody>
     </table>
     <?php
@@ -224,14 +242,19 @@ function anikeola_cbt_save_exam_settings_meta_box_data( $post_id ) {
     if ( ! isset( $_POST['anikeola_cbt_exam_settings_meta_box_nonce'] ) || ! wp_verify_nonce( $_POST['anikeola_cbt_exam_settings_meta_box_nonce'], 'anikeola_cbt_save_exam_settings_meta_box_data' ) ) { return; }
     if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) { return; }
     if ( get_post_type($post_id) != 'cbt_exam' || ! current_user_can( 'edit_post', $post_id ) ) { return; }
+    
     if ( isset( $_POST['_anikeola_cbt_time_limit'] ) ) { update_post_meta( $post_id, '_anikeola_cbt_time_limit', sanitize_text_field( $_POST['_anikeola_cbt_time_limit'] ) ); }
     if ( isset( $_POST['_anikeola_cbt_passing_score'] ) ) { update_post_meta( $post_id, '_anikeola_cbt_passing_score', sanitize_text_field( $_POST['_anikeola_cbt_passing_score'] ) ); }
     if ( isset( $_POST['_anikeola_cbt_attempts_allowed'] ) ) { update_post_meta( $post_id, '_anikeola_cbt_attempts_allowed', sanitize_text_field( $_POST['_anikeola_cbt_attempts_allowed'] ) ); }
+    
+    // Save Randomization Settings
+    update_post_meta( $post_id, '_anikeola_cbt_randomize_questions', isset( $_POST['_anikeola_cbt_randomize_questions'] ) ? '1' : '0' );
+    update_post_meta( $post_id, '_anikeola_cbt_randomize_options', isset( $_POST['_anikeola_cbt_randomize_options'] ) ? '1' : '0' );
 }
 add_action( 'save_post_cbt_exam', 'anikeola_cbt_save_exam_settings_meta_box_data' );
 
 
-// --- Meta Box for Managing Exam Questions ---
+// --- Meta Box for Managing Exam Questions (No changes from Version 2.2) ---
 function anikeola_cbt_add_manage_questions_meta_box() {
     add_meta_box('anikeola_cbt_manage_questions_meta_box_id',__( 'Manage Exam Questions', 'anikeola-cbt' ),'anikeola_cbt_manage_questions_meta_box_callback','cbt_exam','normal','high');
 }
@@ -303,7 +326,7 @@ function anikeola_cbt_save_manage_questions_meta_box_data( $post_id ) {
 add_action( 'save_post_cbt_exam', 'anikeola_cbt_save_manage_questions_meta_box_data' );
 
 
-// --- CSV Import Functionality ---
+// --- CSV Import Functionality (No changes from Version 2.2) ---
 function anikeola_cbt_add_import_submenu_page() {
     add_submenu_page('edit.php?post_type=cbt_exam',__( 'Import Exam & Questions', 'anikeola-cbt' ),__( 'Import Exam CSV', 'anikeola-cbt' ),'manage_options','anikeola-cbt-import-exam','anikeola_cbt_render_import_exam_page');
 }
@@ -399,7 +422,7 @@ function anikeola_cbt_handle_exam_csv_upload_action() {
 }
 add_action( 'admin_post_anikeola_cbt_handle_exam_csv_upload', 'anikeola_cbt_handle_exam_csv_upload_action' );
 
-function anikeola_cbt_import_admin_notices() { /* ... same as v2.0 ... */ 
+function anikeola_cbt_import_admin_notices() { 
     if ( ! isset( $_GET['page'] ) || ('anikeola-cbt-import-exam' !== $_GET['page'] && 'anikeola-cbt-import-questions' !== $_GET['page']) ) { return; }
     if ( isset( $_GET['message'] ) ) {
         $message = ''; $type = 'info';
@@ -481,8 +504,15 @@ function anikeola_cbt_exam_shortcode( $atts ) {
     $exam_instructions = apply_filters( 'the_content', $exam_post->post_content );
     $time_limit_minutes = get_post_meta( $exam_id, '_anikeola_cbt_time_limit', true );
     $time_limit_seconds = !empty($time_limit_minutes) && is_numeric($time_limit_minutes) ? intval( $time_limit_minutes ) * 60 : 0;
+    
     $question_ids = get_post_meta( $exam_id, '_anikeola_cbt_exam_question_ids', true );
     if ( ! is_array( $question_ids ) || empty( $question_ids ) ) { return '<p>' . esc_html__( 'This exam currently has no questions configured.', 'anikeola-cbt' ) . '</p>'; }
+
+    // Check if question order should be randomized
+    $randomize_questions = get_post_meta( $exam_id, '_anikeola_cbt_randomize_questions', true );
+    if ( $randomize_questions === '1' ) {
+        shuffle( $question_ids );
+    }
     
     ob_start();
     ?>
@@ -507,24 +537,36 @@ function anikeola_cbt_exam_shortcode( $atts ) {
             <?php wp_nonce_field( 'anikeola_cbt_submit_exam_nonce_' . $exam_id, 'anikeola_cbt_exam_submission_nonce' ); ?>
             
             <div class="anikeola-cbt-questions-container">
-                <?php foreach ( $question_ids as $index => $question_id ) :
+                <?php 
+                $randomize_options = get_post_meta( $exam_id, '_anikeola_cbt_randomize_options', true );
+                foreach ( $question_ids as $index => $question_id ) :
                     $question_post = get_post( $question_id );
                     if ( ! $question_post || $question_post->post_type !== 'cbt_question' ) { continue; }
                     $question_title = get_the_title( $question_post );
-                    $answer_options = get_post_meta( $question_id, '_anikeola_cbt_answer_options', true );
-                    if ( ! is_array( $answer_options ) ) { $answer_options = array_fill(0,5,''); }
+                    $answer_options_meta = get_post_meta( $question_id, '_anikeola_cbt_answer_options', true );
+                    if ( ! is_array( $answer_options_meta ) ) { $answer_options_meta = array_fill(0,5,''); }
+
+                    // Prepare options with their original indices for shuffling if needed
+                    $options_to_display = array();
+                    foreach ($answer_options_meta as $original_idx => $text) {
+                        if (trim($text) !== '') {
+                            $options_to_display[$original_idx] = $text;
+                        }
+                    }
+                    
+                    $option_keys = array_keys($options_to_display);
+                    if ($randomize_options === '1') {
+                        shuffle($option_keys); // Shuffle the keys (which are original indices)
+                    }
                 ?>
                     <div class="anikeola-cbt-question" id="question-<?php echo esc_attr($exam_id . '-' . $question_id); ?>" data-question-id="<?php echo esc_attr($question_id); ?>">
                         <h3 class="anikeola-cbt-question-title"><?php echo ($index + 1) . '. ' . esc_html( $question_title ); ?></h3>
                         <?php if ( ! empty( $question_post->post_content ) ) : ?><div class="anikeola-cbt-question-description"><?php echo apply_filters( 'the_content', $question_post->post_content ); ?></div><?php endif; ?>
                         <ul class="anikeola-cbt-answer-options">
                             <?php 
-                            $filtered_answer_options = array_filter($answer_options, function($value) { return trim($value) !== ''; });
-                            $option_keys = array_keys($filtered_answer_options);
-                            // shuffle($option_keys); // Uncomment to shuffle answer options display order
-
-                            foreach ( $option_keys as $option_original_idx ) :
-                                $option_text = $filtered_answer_options[$option_original_idx];
+                            foreach ( $option_keys as $shuffled_key_idx ) : // Loop through shuffled keys
+                                $option_original_idx = $shuffled_key_idx; // This is the original index
+                                $option_text = $options_to_display[$option_original_idx];
                             ?>
                                 <li><label><input type="radio" name="answers[<?php echo esc_attr( $question_id ); ?>]" value="<?php echo esc_attr( $option_original_idx ); ?>"> <span><?php echo esc_html( $option_text ); ?></span></label></li>
                             <?php endforeach; ?>
@@ -559,44 +601,25 @@ function anikeola_cbt_process_exam_submission() {
     }
     $score = 0; $total_questions = count( $exam_question_ids ); $processed_answers_for_storage = array(); 
     
-    // Debugging: Log received answers
-    // error_log('CBT Debug: Submitted Answers by Student: ' . print_r($submitted_answers, true));
-
     foreach ( $exam_question_ids as $question_id ) {
         if (get_post_type($question_id) !== 'cbt_question') continue;
         $correct_answer_index_meta = get_post_meta( $question_id, '_anikeola_cbt_correct_answer_index', true );
-        // Ensure correct_answer_index_meta is treated as an integer for comparison
-        $correct_answer_index_meta = ($correct_answer_index_meta !== '') ? intval($correct_answer_index_meta) : -2; // Use -2 to differentiate from unanswered
-
+        $correct_answer_index_meta = ($correct_answer_index_meta !== '') ? intval($correct_answer_index_meta) : -2; 
         $student_answer_index = isset( $submitted_answers[ $question_id ] ) ? intval( $submitted_answers[ $question_id ] ) : -1; 
-        
-        // Debugging: Log comparison for each question
-        // error_log("CBT Debug: QID: $question_id | Student Ans: $student_answer_index (type: " . gettype($student_answer_index) . ") | Correct Ans Meta: $correct_answer_index_meta (type: " . gettype($correct_answer_index_meta) . ")");
-
         $processed_answers_for_storage[$question_id] = $student_answer_index; 
         if ( $student_answer_index !== -1 && $correct_answer_index_meta !== -2 && $student_answer_index === $correct_answer_index_meta ) {
             $score++;
-            // error_log("CBT Debug: QID: $question_id - CORRECT!");
-        } else {
-            // error_log("CBT Debug: QID: $question_id - INCORRECT or UNANSWERED or NO CORRECT ANSWER SET.");
         }
     }
     $percentage = ($total_questions > 0) ? round( ( $score / $total_questions ) * 100, 2 ) : 0;
     $passing_score_percentage_meta = get_post_meta( $exam_id, '_anikeola_cbt_passing_score', true );
-    $passed = false; // Default to false
+    $passed = false; 
     if (is_numeric($passing_score_percentage_meta) && $passing_score_percentage_meta !== '') {
         if ($percentage >= floatval($passing_score_percentage_meta)) {
             $passed = true;
         }
-    } else {
-        // If no passing score is set, or it's not numeric, consider it as 'not passed' or handle as per requirements.
-        // For now, it defaults to false if passing_score_percentage_meta isn't a valid number.
-        // error_log("CBT Debug: Exam ID $exam_id - Passing score not set or not numeric: '$passing_score_percentage_meta'");
     }
     
-    // Debugging: Log final calculation values
-    // error_log("CBT Debug: Exam ID $exam_id - Final Score: $score, Total Q: $total_questions, Percentage: $percentage, Passing Score Meta: '$passing_score_percentage_meta', Passed: " . ($passed ? 'Yes' : 'No'));
-
     $attempt_timestamp = current_time('timestamp');
     $result_data = array('exam_id' => $exam_id, 'user_id' => $user_id, 'score' => $score, 'total_questions' => $total_questions, 'percentage' => $percentage, 'passed' => $passed, 'submitted_answers' => $processed_answers_for_storage, 'timestamp' => $attempt_timestamp, 'ip_address' => $_SERVER['REMOTE_ADDR'] );
     $all_exam_attempts = get_user_meta($user_id, '_anikeola_cbt_exam_attempts_' . $exam_id, true);
@@ -642,5 +665,3 @@ function anikeola_cbt_rewrite_flush() {
     flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'anikeola_cbt_rewrite_flush' );
-
-?>
