@@ -470,7 +470,7 @@ function anikeola_cbt_admin_enqueue_scripts( $hook_suffix ) {
 add_action( 'admin_enqueue_scripts', 'anikeola_cbt_admin_enqueue_scripts' );
 
 
-function anikeola_cbt_exam_shortcode( $atts ) { /* ... same as v2.0 ... */ 
+function anikeola_cbt_exam_shortcode( $atts ) { 
     $atts = shortcode_atts( array('id' => 0,), $atts, 'anikeola_cbt_exam' );
     $exam_id = intval( $atts['id'] );
     if ( ! $exam_id || get_post_type( $exam_id ) !== 'cbt_exam' ) { return '<p>' . esc_html__( 'Error: Invalid or missing exam ID.', 'anikeola-cbt' ) . '</p>'; }
@@ -542,7 +542,7 @@ function anikeola_cbt_exam_shortcode( $atts ) { /* ... same as v2.0 ... */
 add_shortcode( 'anikeola_cbt_exam', 'anikeola_cbt_exam_shortcode' );
 
 // --- AJAX Handler for Exam Submission & Scoring ---
-function anikeola_cbt_process_exam_submission() { /* ... same as v2.0 ... */ 
+function anikeola_cbt_process_exam_submission() { 
     $nonce = isset($_POST['nonce']) ? sanitize_text_field($_POST['nonce']) : '';
     if ( ! wp_verify_nonce( $nonce, 'anikeola_cbt_exam_nonce' ) ) { 
         wp_send_json_error( array( 'message' => __( 'Security check failed (nonce).', 'anikeola-cbt' ) ) ); return;
@@ -558,16 +558,45 @@ function anikeola_cbt_process_exam_submission() { /* ... same as v2.0 ... */
         wp_send_json_error( array( 'message' => __( 'Exam has no questions configured.', 'anikeola-cbt' ) ) ); return;
     }
     $score = 0; $total_questions = count( $exam_question_ids ); $processed_answers_for_storage = array(); 
+    
+    // Debugging: Log received answers
+    // error_log('CBT Debug: Submitted Answers by Student: ' . print_r($submitted_answers, true));
+
     foreach ( $exam_question_ids as $question_id ) {
         if (get_post_type($question_id) !== 'cbt_question') continue;
         $correct_answer_index_meta = get_post_meta( $question_id, '_anikeola_cbt_correct_answer_index', true );
+        // Ensure correct_answer_index_meta is treated as an integer for comparison
+        $correct_answer_index_meta = ($correct_answer_index_meta !== '') ? intval($correct_answer_index_meta) : -2; // Use -2 to differentiate from unanswered
+
         $student_answer_index = isset( $submitted_answers[ $question_id ] ) ? intval( $submitted_answers[ $question_id ] ) : -1; 
+        
+        // Debugging: Log comparison for each question
+        // error_log("CBT Debug: QID: $question_id | Student Ans: $student_answer_index (type: " . gettype($student_answer_index) . ") | Correct Ans Meta: $correct_answer_index_meta (type: " . gettype($correct_answer_index_meta) . ")");
+
         $processed_answers_for_storage[$question_id] = $student_answer_index; 
-        if ( $student_answer_index !== -1 && $correct_answer_index_meta !== '' && $student_answer_index == intval( $correct_answer_index_meta ) ) { $score++; }
+        if ( $student_answer_index !== -1 && $correct_answer_index_meta !== -2 && $student_answer_index === $correct_answer_index_meta ) {
+            $score++;
+            // error_log("CBT Debug: QID: $question_id - CORRECT!");
+        } else {
+            // error_log("CBT Debug: QID: $question_id - INCORRECT or UNANSWERED or NO CORRECT ANSWER SET.");
+        }
     }
     $percentage = ($total_questions > 0) ? round( ( $score / $total_questions ) * 100, 2 ) : 0;
     $passing_score_percentage_meta = get_post_meta( $exam_id, '_anikeola_cbt_passing_score', true );
-    $passed = (is_numeric($passing_score_percentage_meta) && $percentage >= floatval($passing_score_percentage_meta));
+    $passed = false; // Default to false
+    if (is_numeric($passing_score_percentage_meta) && $passing_score_percentage_meta !== '') {
+        if ($percentage >= floatval($passing_score_percentage_meta)) {
+            $passed = true;
+        }
+    } else {
+        // If no passing score is set, or it's not numeric, consider it as 'not passed' or handle as per requirements.
+        // For now, it defaults to false if passing_score_percentage_meta isn't a valid number.
+        // error_log("CBT Debug: Exam ID $exam_id - Passing score not set or not numeric: '$passing_score_percentage_meta'");
+    }
+    
+    // Debugging: Log final calculation values
+    // error_log("CBT Debug: Exam ID $exam_id - Final Score: $score, Total Q: $total_questions, Percentage: $percentage, Passing Score Meta: '$passing_score_percentage_meta', Passed: " . ($passed ? 'Yes' : 'No'));
+
     $attempt_timestamp = current_time('timestamp');
     $result_data = array('exam_id' => $exam_id, 'user_id' => $user_id, 'score' => $score, 'total_questions' => $total_questions, 'percentage' => $percentage, 'passed' => $passed, 'submitted_answers' => $processed_answers_for_storage, 'timestamp' => $attempt_timestamp, 'ip_address' => $_SERVER['REMOTE_ADDR'] );
     $all_exam_attempts = get_user_meta($user_id, '_anikeola_cbt_exam_attempts_' . $exam_id, true);
@@ -580,7 +609,7 @@ add_action( 'wp_ajax_anikeola_cbt_submit_exam_answers', 'anikeola_cbt_process_ex
 
 
 // --- AJAX Handler for Searching Questions (Admin) ---
-function anikeola_cbt_search_questions_ajax_handler() { /* ... same as v2.1 ... */ 
+function anikeola_cbt_search_questions_ajax_handler() { 
     check_ajax_referer( 'anikeola_cbt_admin_nonce', 'nonce' ); 
     $search_term = isset( $_POST['search_term'] ) ? sanitize_text_field( $_POST['search_term'] ) : '';
     $subject_id = isset( $_POST['subject_id'] ) ? intval( $_POST['subject_id'] ) : 0;
