@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// --- CBT Question Custom Post Type and Taxonomies (No changes from Version 2.1) ---
+// --- CBT Question Custom Post Type and Taxonomies ---
 /**
  * Register CBT Question Custom Post Type.
  */
@@ -115,7 +115,7 @@ function anikeola_cbt_register_exam_cpt() {
 add_action( 'init', 'anikeola_cbt_register_exam_cpt', 0 );
 
 
-// Taxonomies (Subject, Class Level, Topic) - No changes from Version 2.1
+// Taxonomies (Subject, Class Level, Topic)
 function anikeola_cbt_register_subject_taxonomy() {
     $labels = array('name' => _x( 'Subjects', 'taxonomy general name', 'anikeola-cbt' ), 'singular_name' => _x( 'Subject', 'taxonomy singular name', 'anikeola-cbt' ), 'menu_name' => __( 'Subjects', 'anikeola-cbt' ),);
     $args = array('hierarchical' => true, 'labels' => $labels, 'show_ui' => true, 'show_admin_column' => true, 'query_var' => true, 'rewrite' => array( 'slug' => 'cbt-subject' ), 'show_in_rest' => true,);
@@ -138,7 +138,7 @@ function anikeola_cbt_register_topic_taxonomy() {
 add_action( 'init', 'anikeola_cbt_register_topic_taxonomy', 0 );
 
 
-// --- Meta Box for Question Answers (No changes from Version 2.1) ---
+// --- Meta Box for Question Answers ---
 function anikeola_cbt_add_answers_meta_box() {
     add_meta_box('anikeola_cbt_answers_meta_box_id', __( 'Question Options', 'anikeola-cbt' ), 'anikeola_cbt_answers_meta_box_callback', 'cbt_question', 'normal', 'high');
 }
@@ -198,7 +198,7 @@ function anikeola_cbt_save_answers_meta_box_data( $post_id ) {
 add_action( 'save_post_cbt_question', 'anikeola_cbt_save_answers_meta_box_data' );
 
 
-// --- Meta Box for Exam Settings (No changes from Version 2.1) ---
+// --- Meta Box for Exam Settings ---
 function anikeola_cbt_add_exam_settings_meta_box() {
     add_meta_box('anikeola_cbt_exam_settings_meta_box_id',__( 'Exam Settings', 'anikeola-cbt' ),'anikeola_cbt_exam_settings_meta_box_callback','cbt_exam','normal','high');
 }
@@ -231,23 +231,16 @@ function anikeola_cbt_save_exam_settings_meta_box_data( $post_id ) {
 add_action( 'save_post_cbt_exam', 'anikeola_cbt_save_exam_settings_meta_box_data' );
 
 
-// --- Meta Box for Managing Exam Questions - UPDATED for Sortable and Edit/Add Links ---
+// --- Meta Box for Managing Exam Questions ---
 function anikeola_cbt_add_manage_questions_meta_box() {
     add_meta_box('anikeola_cbt_manage_questions_meta_box_id',__( 'Manage Exam Questions', 'anikeola-cbt' ),'anikeola_cbt_manage_questions_meta_box_callback','cbt_exam','normal','high');
 }
 add_action( 'add_meta_boxes_cbt_exam', 'anikeola_cbt_add_manage_questions_meta_box' );
 
-/**
- * Callback function to render the HTML for the manage questions meta box.
- * @param WP_Post $post The post object.
- */
 function anikeola_cbt_manage_questions_meta_box_callback( $post ) {
     wp_nonce_field( 'anikeola_cbt_save_manage_questions_meta_box_data', 'anikeola_cbt_manage_questions_meta_box_nonce' );
-
     $selected_question_ids = get_post_meta( $post->ID, '_anikeola_cbt_exam_question_ids', true );
-    if ( ! is_array( $selected_question_ids ) ) {
-        $selected_question_ids = array();
-    }
+    if ( ! is_array( $selected_question_ids ) ) { $selected_question_ids = array(); }
     $question_ids_string = implode( ',', $selected_question_ids );
     ?>
     <div id="anikeola-cbt-manage-questions-app" data-exam-id="<?php echo esc_attr($post->ID); ?>">
@@ -263,8 +256,7 @@ function anikeola_cbt_manage_questions_meta_box_callback( $post ) {
                 <?php foreach ( $selected_question_ids as $q_id ) : 
                     $question_title = get_the_title( $q_id );
                     $edit_link = get_edit_post_link( $q_id );
-                    if ( $question_title ) :
-                ?>
+                    if ( $question_title ) : ?>
                     <li data-id="<?php echo esc_attr( $q_id ); ?>">
                         <span class="dashicons dashicons-menu handle" style="cursor:move; margin-right:5px;" title="<?php esc_attr_e('Drag to reorder', 'anikeola-cbt'); ?>"></span>
                         <?php echo esc_html( $question_title ); ?> (ID: <?php echo esc_html( $q_id ); ?>)
@@ -275,12 +267,8 @@ function anikeola_cbt_manage_questions_meta_box_callback( $post ) {
                             <button type="button" class="button button-small anikeola-cbt-remove-question"><?php esc_html_e('Remove', 'anikeola-cbt'); ?></button>
                         </span>
                     </li>
-                <?php 
-                    endif;
-                endforeach; ?>
-            <?php else : ?>
-                <li class="no-questions-notice"><?php esc_html_e( 'No questions have been added to this exam yet.', 'anikeola-cbt' ); ?></li>
-            <?php endif; ?>
+                <?php endif; endforeach; ?>
+            <?php else : ?><li class="no-questions-notice"><?php esc_html_e( 'No questions have been added to this exam yet.', 'anikeola-cbt' ); ?></li><?php endif; ?>
         </ul>
         <input type="hidden" id="anikeola_cbt_exam_question_ids_hidden" name="_anikeola_cbt_exam_question_ids_input" value="<?php echo esc_attr( $question_ids_string ); ?>" />
 
@@ -288,59 +276,14 @@ function anikeola_cbt_manage_questions_meta_box_callback( $post ) {
 
         <h4><?php esc_html_e( 'Add Questions from Bank:', 'anikeola-cbt' ); ?></h4>
         <div id="anikeola-cbt-question-filters">
-            <p>
-                <label for="anikeola-cbt-search-keyword"><?php esc_html_e( 'Keyword:', 'anikeola-cbt' ); ?></label>
-                <input type="text" id="anikeola-cbt-search-keyword" name="anikeola_cbt_search_keyword" placeholder="<?php esc_attr_e( 'Search question titles...', 'anikeola-cbt' ); ?>" />
-            </p>
-            <p>
-                <label for="anikeola-cbt-filter-subject"><?php esc_html_e( 'Subject:', 'anikeola-cbt' ); ?></label>
-                <?php
-                wp_dropdown_categories( array(
-                    'show_option_all' => __( 'All Subjects', 'anikeola-cbt' ),
-                    'taxonomy'        => 'cbt_subject',
-                    'name'            => 'anikeola_cbt_filter_subject',
-                    'id'              => 'anikeola-cbt-filter-subject',
-                    'orderby'         => 'name',
-                    'hierarchical'    => true,
-                    'hide_empty'      => false,
-                ) );
-                ?>
-            </p>
-            <p>
-                <label for="anikeola-cbt-filter-class-level"><?php esc_html_e( 'Class Level:', 'anikeola-cbt' ); ?></label>
-                <?php
-                wp_dropdown_categories( array(
-                    'show_option_all' => __( 'All Class Levels', 'anikeola-cbt' ),
-                    'taxonomy'        => 'cbt_class_level',
-                    'name'            => 'anikeola_cbt_filter_class_level',
-                    'id'              => 'anikeola-cbt-filter-class-level',
-                    'orderby'         => 'name',
-                    'hierarchical'    => true,
-                    'hide_empty'      => false,
-                ) );
-                ?>
-            </p>
-             <p>
-                <label for="anikeola-cbt-filter-topic"><?php esc_html_e( 'Topic:', 'anikeola-cbt' ); ?></label>
-                <?php
-                wp_dropdown_categories( array(
-                    'show_option_all' => __( 'All Topics', 'anikeola-cbt' ),
-                    'taxonomy'        => 'cbt_topic',
-                    'name'            => 'anikeola_cbt_filter_topic',
-                    'id'              => 'anikeola-cbt-filter-topic',
-                    'orderby'         => 'name',
-                    'hierarchical'    => true,
-                    'hide_empty'      => false,
-                ) );
-                ?>
-            </p>
+            <p><label for="anikeola-cbt-search-keyword"><?php esc_html_e( 'Keyword:', 'anikeola-cbt' ); ?></label><input type="text" id="anikeola-cbt-search-keyword" name="anikeola_cbt_search_keyword" placeholder="<?php esc_attr_e( 'Search question titles...', 'anikeola-cbt' ); ?>" /></p>
+            <p><label for="anikeola-cbt-filter-subject"><?php esc_html_e( 'Subject:', 'anikeola-cbt' ); ?></label><?php wp_dropdown_categories( array('show_option_all' => __( 'All Subjects', 'anikeola-cbt' ),'taxonomy'=> 'cbt_subject','name'=> 'anikeola_cbt_filter_subject','id'=> 'anikeola-cbt-filter-subject','orderby'=> 'name','hierarchical'=> true,'hide_empty'=> false,) );?></p>
+            <p><label for="anikeola-cbt-filter-class-level"><?php esc_html_e( 'Class Level:', 'anikeola-cbt' ); ?></label><?php wp_dropdown_categories( array('show_option_all' => __( 'All Class Levels', 'anikeola-cbt' ),'taxonomy'=> 'cbt_class_level','name'=> 'anikeola_cbt_filter_class_level','id'=> 'anikeola-cbt-filter-class-level','orderby'=> 'name','hierarchical'=> true,'hide_empty'=> false,) );?></p>
+            <p><label for="anikeola-cbt-filter-topic"><?php esc_html_e( 'Topic:', 'anikeola-cbt' ); ?></label><?php wp_dropdown_categories( array('show_option_all' => __( 'All Topics', 'anikeola-cbt' ),'taxonomy'=> 'cbt_topic','name'=> 'anikeola_cbt_filter_topic','id'=> 'anikeola-cbt-filter-topic','orderby'=> 'name','hierarchical'=> true,'hide_empty'=> false,) );?></p>
             <button type="button" id="anikeola-cbt-search-questions-button" class="button"><?php esc_html_e( 'Search Questions', 'anikeola-cbt' ); ?></button>
         </div>
-
-        <div id="anikeola-cbt-search-results-container" style="margin-top:15px; max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
-            <p class="description"><?php esc_html_e( 'Search results will appear here.', 'anikeola-cbt' ); ?></p>
-        </div>
-         <p><button type="button" id="anikeola-cbt-add-selected-to-exam-button" class="button button-primary" style="margin-top:10px; display:none;"><?php esc_html_e( 'Add Selected Questions to Exam', 'anikeola-cbt' ); ?></button></p>
+        <div id="anikeola-cbt-search-results-container" style="margin-top:15px; max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;"><p class="description"><?php esc_html_e( 'Search results will appear here.', 'anikeola-cbt' ); ?></p></div>
+        <p><button type="button" id="anikeola-cbt-add-selected-to-exam-button" class="button button-primary" style="margin-top:10px; display:none;"><?php esc_html_e( 'Add Selected Questions to Exam', 'anikeola-cbt' ); ?></button></p>
     </div>
     <?php
 }
@@ -349,50 +292,38 @@ function anikeola_cbt_save_manage_questions_meta_box_data( $post_id ) {
     if ( ! isset( $_POST['anikeola_cbt_manage_questions_meta_box_nonce'] ) || ! wp_verify_nonce( $_POST['anikeola_cbt_manage_questions_meta_box_nonce'], 'anikeola_cbt_save_manage_questions_meta_box_data' ) ) { return; }
     if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) { return; }
     if ( get_post_type($post_id) != 'cbt_exam' || ! current_user_can( 'edit_post', $post_id ) ) { return; }
-    
     if ( isset( $_POST['anikeola_cbt_exam_question_ids_hidden'] ) ) {
         $ids_string = sanitize_text_field( $_POST['anikeola_cbt_exam_question_ids_hidden'] );
         $question_ids = array_map( 'intval', explode( ',', $ids_string ) );
         $question_ids = array_filter( $question_ids, function($id) { return $id > 0; } );
         $question_ids = array_unique( $question_ids ); 
         update_post_meta( $post_id, '_anikeola_cbt_exam_question_ids', $question_ids );
-    } else {
-        delete_post_meta( $post_id, '_anikeola_cbt_exam_question_ids' );
-    }
+    } else { delete_post_meta( $post_id, '_anikeola_cbt_exam_question_ids' ); }
 }
 add_action( 'save_post_cbt_exam', 'anikeola_cbt_save_manage_questions_meta_box_data' );
 
 
-// --- CSV Import Functionality (No changes from Version 2.1) ---
+// --- CSV Import Functionality ---
 function anikeola_cbt_add_import_submenu_page() {
     add_submenu_page('edit.php?post_type=cbt_exam',__( 'Import Exam & Questions', 'anikeola-cbt' ),__( 'Import Exam CSV', 'anikeola-cbt' ),'manage_options','anikeola-cbt-import-exam','anikeola_cbt_render_import_exam_page');
 }
 add_action( 'admin_menu', 'anikeola_cbt_add_import_submenu_page' );
 
-function anikeola_cbt_render_import_exam_page() { /* ... same as v2.1 ... */ 
+function anikeola_cbt_render_import_exam_page() { 
     ?>
     <div class="wrap">
         <h1><?php esc_html_e( 'Import CBT Exam & Questions from CSV', 'anikeola-cbt' ); ?></h1>
         <p><?php esc_html_e( 'Upload a CSV file to import an exam and its questions. If an exam with the specified title doesn\'t exist, it will be created.', 'anikeola-cbt' ); ?></p>
-        <p>
-            <strong><?php esc_html_e( 'Expected CSV Format (headerless, 12 columns):', 'anikeola-cbt' ); ?></strong><br>
+        <p><strong><?php esc_html_e( 'Expected CSV Format (headerless, 12 columns):', 'anikeola-cbt' ); ?></strong><br>
             <code>Exam Title, Question Title, Answer 1, Answer 2, Answer 3, Answer 4, Answer 5 (optional), Correct Answer Index (1-5), Question Subject, Question Class Level, Question Topic, Question Description (optional)</code>
         </p>
-        <p>
-            <em><?php esc_html_e( 'Example Row: SSS 2 Biology Mid-Term,Which of these is the powerhouse of the cell?,Nucleus,Mitochondria,Ribosome,Endoplasmic Reticulum,,2,Biology,SSS 2,Cell Structure,Tests basic cell biology.', 'anikeola-cbt' ); ?></em><br>
-            <em><?php esc_html_e( 'The "Exam Title", "Question Subject", and "Question Class Level" from the first valid question row will be used to create/identify the exam and set its taxonomies if the exam is new.', 'anikeola-cbt' ); ?></em>
-        </p>
+        <p><em><?php esc_html_e( 'Example Row: SSS 2 Biology Mid-Term,Which of these is the powerhouse of the cell?,Nucleus,Mitochondria,Ribosome,Endoplasmic Reticulum,,2,Biology,SSS 2,Cell Structure,Tests basic cell biology.', 'anikeola-cbt' ); ?></em><br>
+            <em><?php esc_html_e( 'The "Exam Title", "Question Subject", and "Question Class Level" from the first valid question row will be used to create/identify the exam and set its taxonomies if the exam is new.', 'anikeola-cbt' ); ?></em></p>
         <form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
             <input type="hidden" name="action" value="anikeola_cbt_handle_exam_csv_upload">
             <?php wp_nonce_field( 'anikeola_cbt_exam_csv_import_nonce', 'anikeola_cbt_exam_csv_import_nonce_field' ); ?>
             <table class="form-table">
-                <tr valign="top">
-                    <th scope="row"><label for="cbt_exam_csv_file"><?php esc_html_e( 'Exam CSV File:', 'anikeola-cbt' ); ?></label></th>
-                    <td>
-                        <input type="file" id="cbt_exam_csv_file" name="cbt_exam_csv_file" accept=".csv" required />
-                        <p class="description"><?php esc_html_e( 'Please ensure the file is UTF-8 encoded and follows the specified 12-column format.', 'anikeola-cbt' ); ?></p>
-                    </td>
-                </tr>
+                <tr valign="top"><th scope="row"><label for="cbt_exam_csv_file"><?php esc_html_e( 'Exam CSV File:', 'anikeola-cbt' ); ?></label></th><td><input type="file" id="cbt_exam_csv_file" name="cbt_exam_csv_file" accept=".csv" required /><p class="description"><?php esc_html_e( 'Please ensure the file is UTF-8 encoded and follows the specified 12-column format.', 'anikeola-cbt' ); ?></p></td></tr>
             </table>
             <?php submit_button( __( 'Import Exam and Questions', 'anikeola-cbt' ) ); ?>
         </form>
@@ -400,24 +331,15 @@ function anikeola_cbt_render_import_exam_page() { /* ... same as v2.1 ... */
     <?php
 }
 
-function anikeola_cbt_handle_exam_csv_upload_action() { /* ... same as v2.1 ... */ 
+function anikeola_cbt_handle_exam_csv_upload_action() { 
     if ( ! isset( $_POST['anikeola_cbt_exam_csv_import_nonce_field'] ) || ! wp_verify_nonce( $_POST['anikeola_cbt_exam_csv_import_nonce_field'], 'anikeola_cbt_exam_csv_import_nonce' ) ) { wp_die( esc_html__( 'Security check failed!', 'anikeola-cbt' ) ); }
     if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'You do not have sufficient permissions.', 'anikeola-cbt' ) ); }
 
     if ( isset( $_FILES['cbt_exam_csv_file'] ) && $_FILES['cbt_exam_csv_file']['error'] == UPLOAD_ERR_OK ) {
         $file_tmp_path = $_FILES['cbt_exam_csv_file']['tmp_name'];
         $allowed_mime_types = array( 'text/csv', 'application/csv', 'text/plain', 'application/vnd.ms-excel' );
-        if ( ! function_exists('mime_content_type')) {
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $file_mime_type = finfo_file($finfo, $file_tmp_path);
-            finfo_close($finfo);
-        } else {
-            $file_mime_type = mime_content_type($file_tmp_path);
-        }
-
-        if ( ! in_array( $file_mime_type, $allowed_mime_types ) ) {
-            wp_redirect( add_query_arg( array( 'page' => 'anikeola-cbt-import-exam', 'message' => 'invalid_file_type' ), admin_url( 'edit.php?post_type=cbt_exam' ) ) ); exit;
-        }
+        if ( ! function_exists('mime_content_type')) { $finfo = finfo_open(FILEINFO_MIME_TYPE); $file_mime_type = finfo_file($finfo, $file_tmp_path); finfo_close($finfo); } else { $file_mime_type = mime_content_type($file_tmp_path); }
+        if ( ! in_array( $file_mime_type, $allowed_mime_types ) ) { wp_redirect( add_query_arg( array( 'page' => 'anikeola-cbt-import-exam', 'message' => 'invalid_file_type' ), admin_url( 'edit.php?post_type=cbt_exam' ) ) ); exit; }
 
         @set_time_limit(0); @ini_set('memory_limit', '256M');
         $imported_question_count = 0; $failed_rows = array(); $row_number = 0;
@@ -428,12 +350,10 @@ function anikeola_cbt_handle_exam_csv_upload_action() { /* ... same as v2.1 ... 
             while ( ( $data = fgetcsv( $handle, 2000, ',' ) ) !== false ) {
                 $row_number++;
                 if ( count( $data ) < 11 ) { $failed_rows[] = $row_number . ' (Incorrect column count)'; continue; }
-
                 if ( empty($exam_title_from_csv) && !empty(trim($data[0])) ) {
                     $exam_title_from_csv = sanitize_text_field( trim( $data[0] ) );
                     $exam_subject_from_csv = isset($data[8]) ? sanitize_text_field( trim( $data[8] ) ) : '';
                     $exam_class_level_from_csv = isset($data[9]) ? sanitize_text_field( trim( $data[9] ) ) : '';
-                    
                     $existing_exam = get_page_by_title( $exam_title_from_csv, OBJECT, 'cbt_exam' );
                     if ( $existing_exam ) { $exam_id = $existing_exam->ID; } 
                     else {
@@ -458,26 +378,19 @@ function anikeola_cbt_handle_exam_csv_upload_action() { /* ... same as v2.1 ... 
                 $question_content   = isset($data[11]) ? wp_kses_post( trim( $data[11] ) ) : '';
 
                 if ( empty( $question_title ) || $correct_answer_index === -1 ) { $failed_rows[] = $row_number . ' (Missing Q.Title/CorrectAns)'; continue; }
-
                 $question_post_data = array('post_title' => $question_title, 'post_content' => $question_content, 'post_type' => 'cbt_question', 'post_status' => 'publish');
                 $question_post_id = wp_insert_post( $question_post_data );
-
                 if ( $question_post_id && ! is_wp_error( $question_post_id ) ) {
                     update_post_meta( $question_post_id, '_anikeola_cbt_answer_options', $answer_options );
                     update_post_meta( $question_post_id, '_anikeola_cbt_correct_answer_index', $correct_answer_index );
                     if ( ! empty( $q_subject_name ) ) { wp_set_object_terms( $question_post_id, $q_subject_name, 'cbt_subject', false ); }
                     if ( ! empty( $q_class_level_name ) ) { wp_set_object_terms( $question_post_id, $q_class_level_name, 'cbt_class_level', false ); }
                     if ( ! empty( $q_topic_name ) ) { wp_set_object_terms( $question_post_id, $q_topic_name, 'cbt_topic', false ); }
-                    $imported_question_count++;
-                    $imported_question_ids_for_exam[] = $question_post_id;
+                    $imported_question_count++; $imported_question_ids_for_exam[] = $question_post_id;
                 } else { $failed_rows[] = $row_number . ' (Failed to import question: ' . esc_html($question_title) . ')'; }
             }
             fclose( $handle );
-
-            if ( $exam_id && !empty($imported_question_ids_for_exam) ) {
-                update_post_meta( $exam_id, '_anikeola_cbt_exam_question_ids', $imported_question_ids_for_exam );
-            }
-            
+            if ( $exam_id && !empty($imported_question_ids_for_exam) ) { update_post_meta( $exam_id, '_anikeola_cbt_exam_question_ids', $imported_question_ids_for_exam ); }
             $redirect_args = array('page' => 'anikeola-cbt-import-exam', 'message' => 'imported', 'count' => $imported_question_count, 'exam_id' => $exam_id, 'exam_title' => urlencode($exam_title_from_csv) );
             if(!empty($failed_rows)) { $redirect_args['failed_count'] = count($failed_rows); }
             wp_redirect( add_query_arg( $redirect_args, admin_url( 'edit.php?post_type=cbt_exam' ) ) ); exit;
@@ -500,9 +413,7 @@ function anikeola_cbt_import_admin_notices() { /* ... same as v2.0 ... */
                     $edit_link = $exam_id ? get_edit_post_link($exam_id) : '';
                     $exam_title_msg_part = sprintf(esc_html__('and associated with exam: %s.', 'anikeola-cbt'), esc_html($exam_title));
                     if ($edit_link) { $exam_title_msg_part .= ' <a href="' . esc_url($edit_link) . '">' . esc_html__('Edit Exam', 'anikeola-cbt') . '</a>'; }
-                } else {
-                     $exam_title_msg_part = esc_html__('into the Question Bank.', 'anikeola-cbt');
-                }
+                } else { $exam_title_msg_part = esc_html__('into the Question Bank.', 'anikeola-cbt'); }
                 $message = sprintf( esc_html__( '%d questions imported successfully %s', 'anikeola-cbt' ), $count, $exam_title_msg_part );
                 if(isset($_GET['failed_count']) && intval($_GET['failed_count']) > 0) { $message .= ' ' . sprintf( esc_html__( '%d rows failed to import.', 'anikeola-cbt' ), intval($_GET['failed_count']) );}
                 $type = 'success'; break;
@@ -516,44 +427,23 @@ function anikeola_cbt_import_admin_notices() { /* ... same as v2.0 ... */
 add_action( 'admin_notices', 'anikeola_cbt_import_admin_notices' );
 
 
-// --- Front-end Exam Display Shortcode & AJAX Handler (No changes from Version 2.0) ---
+// --- Front-end Exam Display Shortcode & AJAX Handler ---
 function anikeola_cbt_enqueue_front_end_assets() {
-    global $post;
-    $load_assets = false;
+    global $post; $load_assets = false;
     if ( is_singular('cbt_exam') ) { $load_assets = true; } 
     elseif ( is_a( $post, 'WP_Post' ) && function_exists('has_shortcode') && has_shortcode( $post->post_content, 'anikeola_cbt_exam' ) ) { $load_assets = true; }
-
     if ( $load_assets ) {
-        wp_enqueue_style('anikeola-cbt-front-style', plugin_dir_url( __FILE__ ) . 'public/css/anikeola-cbt-front.css', array(), '2.1'); // Version Update
-        // wp_enqueue_script('anikeola-cbt-admin-exam-script', plugin_dir_url( __FILE__ ) . 'admin/js/anikeola-cbt-admin-exam.js', array('jquery', 'jquery-ui-sortable'), '2.1', true); // This was incorrectly enqueued on front-end
-        wp_enqueue_script('anikeola-cbt-front-script', plugin_dir_url( __FILE__ ) . 'public/js/anikeola-cbt-front.js', array( 'jquery' ), '2.1', true ); // Version Update
+        wp_enqueue_style('anikeola-cbt-front-style', plugin_dir_url( __FILE__ ) . 'public/css/anikeola-cbt-front.css', array(), '2.2');
+        wp_enqueue_script('anikeola-cbt-front-script', plugin_dir_url( __FILE__ ) . 'public/js/anikeola-cbt-front.js', array( 'jquery' ), '2.2', true );
         wp_localize_script('anikeola-cbt-front-script', 'anikeolaCbtData', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce'    => wp_create_nonce('anikeola_cbt_exam_nonce'),
-            'text_times_up' => __('Time\'s Up!', 'anikeola-cbt'),
-            'text_submit_exam' => __('Submit Exam', 'anikeola-cbt'),
-            'text_time_expired_submitted' => __('Time Expired - Submitting...', 'anikeola-cbt'),
-            'text_confirm_submission' => __('Are you sure you want to submit your exam?', 'anikeola-cbt'),
-            'text_exam_submitted_header' => __('Exam Results', 'anikeola-cbt'),
-            'text_your_score_is' => __('Your score:','anikeola-cbt'),
-            'text_percentage' => __('Percentage:','anikeola-cbt'),
-            'text_passed' => __('Status: Passed','anikeola-cbt'),
-            'text_failed' => __('Status: Failed','anikeola-cbt'),
-            'text_error_submitting' => __('Error submitting exam. Please try again.','anikeola-cbt'),
+            'ajax_url' => admin_url('admin-ajax.php'), 'nonce' => wp_create_nonce('anikeola_cbt_exam_nonce'),
+            'text_times_up' => __('Time\'s Up!', 'anikeola-cbt'), 'text_submit_exam' => __('Submit Exam', 'anikeola-cbt'),
+            'text_time_expired_submitted' => __('Time Expired - Submitting...', 'anikeola-cbt'), 'text_confirm_submission' => __('Are you sure you want to submit your exam?', 'anikeola-cbt'),
+            'text_exam_submitted_header' => __('Exam Results', 'anikeola-cbt'), 'text_your_score_is' => __('Your score:','anikeola-cbt'),
+            'text_percentage' => __('Percentage:','anikeola-cbt'), 'text_passed' => __('Status: Passed','anikeola-cbt'),
+            'text_failed' => __('Status: Failed','anikeola-cbt'), 'text_error_submitting' => __('Error submitting exam. Please try again.','anikeola-cbt'),
             'text_ajax_error' => __('An AJAX error occurred:','anikeola-cbt')
         ));
-         // This localize script should be in anikeola_cbt_admin_enqueue_scripts
-         /*
-         wp_localize_script('anikeola-cbt-admin-exam-script', 'anikeolaCbtAdminData', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce'    => wp_create_nonce('anikeola_cbt_admin_nonce'), 
-            'text_searching' => __('Searching...', 'anikeola-cbt'),
-            'text_no_questions_found' => __('No questions found matching your criteria.', 'anikeola-cbt'),
-            'text_add_to_exam' => __('Add to Exam', 'anikeola-cbt'),
-            'text_remove' => __('Remove', 'anikeola-cbt'),
-            'text_question_id' => __('ID:', 'anikeola-cbt'),
-        ));
-        */
     }
 }
 add_action( 'wp_enqueue_scripts', 'anikeola_cbt_enqueue_front_end_assets' );
@@ -563,31 +453,15 @@ add_action( 'wp_enqueue_scripts', 'anikeola_cbt_enqueue_front_end_assets' );
  */
 function anikeola_cbt_admin_enqueue_scripts( $hook_suffix ) {
     global $post_type;
-    // Only load on the 'cbt_exam' post type edit screens
     if ( ( $hook_suffix == 'post-new.php' || $hook_suffix == 'post.php' ) && isset($post_type) && $post_type == 'cbt_exam' ) {
-        wp_enqueue_style(
-            'anikeola-cbt-admin-style',
-            plugin_dir_url( __FILE__ ) . 'admin/css/anikeola-cbt-admin.css',
-            array(),
-            '2.2' // Updated version
-        );
-        wp_enqueue_script(
-            'anikeola-cbt-admin-exam-script',
-            plugin_dir_url( __FILE__ ) . 'admin/js/anikeola-cbt-admin-exam.js',
-            array( 'jquery', 'jquery-ui-sortable' ), 
-            '2.2', // Updated version
-            true
-        );
+        wp_enqueue_style('anikeola-cbt-admin-style', plugin_dir_url( __FILE__ ) . 'admin/css/anikeola-cbt-admin.css', array(), '2.2');
+        wp_enqueue_script('anikeola-cbt-admin-exam-script', plugin_dir_url( __FILE__ ) . 'admin/js/anikeola-cbt-admin-exam.js', array( 'jquery', 'jquery-ui-sortable' ), '2.2', true );
         wp_localize_script('anikeola-cbt-admin-exam-script', 'anikeolaCbtAdminData', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce'    => wp_create_nonce('anikeola_cbt_admin_nonce'),
-            'text_searching' => __('Searching...', 'anikeola-cbt'),
-            'text_no_questions_found' => __('No questions found matching your criteria.', 'anikeola-cbt'),
+            'ajax_url' => admin_url('admin-ajax.php'), 'nonce' => wp_create_nonce('anikeola_cbt_admin_nonce'),
+            'text_searching' => __('Searching...', 'anikeola-cbt'), 'text_no_questions_found' => __('No questions found matching your criteria.', 'anikeola-cbt'),
             'text_no_questions_added' => __('No questions have been added to this exam yet.', 'anikeola-cbt'),
-            'text_add_to_exam' => __('Add to Exam', 'anikeola-cbt'),
-            'text_remove' => __('Remove', 'anikeola-cbt'),
-            'text_question_id' => __('ID:', 'anikeola-cbt'),
-            'text_edit_question' => __('Edit', 'anikeola-cbt'),
+            'text_add_to_exam' => __('Add to Exam', 'anikeola-cbt'), 'text_remove' => __('Remove', 'anikeola-cbt'),
+            'text_question_id' => __('ID:', 'anikeola-cbt'), 'text_edit_question' => __('Edit', 'anikeola-cbt'),
             'text_drag_to_reorder' => __('Drag to reorder', 'anikeola-cbt'),
             'text_no_new_questions_or_all_added' => __('No new questions found matching your criteria, or all found questions are already in the exam.', 'anikeola-cbt'),
         ));
@@ -615,7 +489,14 @@ function anikeola_cbt_exam_shortcode( $atts ) { /* ... same as v2.0 ... */
     <div class="anikeola-cbt-exam-wrapper" id="anikeola-cbt-exam-<?php echo esc_attr( $exam_id ); ?>" data-exam-id="<?php echo esc_attr( $exam_id ); ?>">
         <h2 class="anikeola-cbt-exam-title"><?php echo esc_html( $exam_title ); ?></h2>
         <?php if ( $time_limit_seconds > 0 ) : ?>
-            <div class="anikeola-cbt-timer"><?php esc_html_e( 'Time Remaining: ', 'anikeola-cbt' ); ?><span id="anikeola-cbt-countdown-<?php echo esc_attr( $exam_id ); ?>" data-time-limit="<?php echo esc_attr( $time_limit_seconds ); ?>"><?php echo gmdate("H:i:s", $time_limit_seconds); ?></span></div>
+            <div class="anikeola-cbt-timer">
+                <?php esc_html_e( 'Time Remaining: ', 'anikeola-cbt' ); ?>
+                <span id="anikeola-cbt-countdown-<?php echo esc_attr( $exam_id ); ?>" data-time-limit="<?php echo esc_attr( $time_limit_seconds ); ?>"><?php echo gmdate("H:i:s", $time_limit_seconds); ?></span>
+                <div class="anikeola-cbt-progress-container">
+                    <div class="anikeola-cbt-progress-bar"></div>
+                    <div class="anikeola-cbt-progress-text">0 / <?php echo count($question_ids); ?> Answered</div>
+                </div>
+            </div>
         <?php endif; ?>
         <div class="anikeola-cbt-exam-instructions"><?php echo wp_kses_post( $exam_instructions ); ?></div>
         
@@ -638,13 +519,14 @@ function anikeola_cbt_exam_shortcode( $atts ) { /* ... same as v2.0 ... */
                         <?php if ( ! empty( $question_post->post_content ) ) : ?><div class="anikeola-cbt-question-description"><?php echo apply_filters( 'the_content', $question_post->post_content ); ?></div><?php endif; ?>
                         <ul class="anikeola-cbt-answer-options">
                             <?php 
-                            $shuffled_option_indices = range(0, count(array_filter($answer_options)) - 1);
-                            foreach ( $shuffled_option_indices as $option_shuffled_idx ) :
-                                $option_original_idx = $option_shuffled_idx;
-                                $option_text = isset($answer_options[$option_original_idx]) ? trim($answer_options[$option_original_idx]) : '';
-                                if ( empty($option_text) ) continue; 
+                            $filtered_answer_options = array_filter($answer_options, function($value) { return trim($value) !== ''; });
+                            $option_keys = array_keys($filtered_answer_options);
+                            // shuffle($option_keys); // Uncomment to shuffle answer options display order
+
+                            foreach ( $option_keys as $option_original_idx ) :
+                                $option_text = $filtered_answer_options[$option_original_idx];
                             ?>
-                                <li><label><input type="radio" name="answers[<?php echo esc_attr( $question_id ); ?>]" value="<?php echo esc_attr( $option_original_idx ); ?>"> <?php echo esc_html( $option_text ); ?></label></li>
+                                <li><label><input type="radio" name="answers[<?php echo esc_attr( $question_id ); ?>]" value="<?php echo esc_attr( $option_original_idx ); ?>"> <span><?php echo esc_html( $option_text ); ?></span></label></li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
@@ -659,8 +541,8 @@ function anikeola_cbt_exam_shortcode( $atts ) { /* ... same as v2.0 ... */
 }
 add_shortcode( 'anikeola_cbt_exam', 'anikeola_cbt_exam_shortcode' );
 
-// --- AJAX Handler for Exam Submission & Scoring (No changes from Version 2.0) ---
-function anikeola_cbt_process_exam_submission() {
+// --- AJAX Handler for Exam Submission & Scoring ---
+function anikeola_cbt_process_exam_submission() { /* ... same as v2.0 ... */ 
     $nonce = isset($_POST['nonce']) ? sanitize_text_field($_POST['nonce']) : '';
     if ( ! wp_verify_nonce( $nonce, 'anikeola_cbt_exam_nonce' ) ) { 
         wp_send_json_error( array( 'message' => __( 'Security check failed (nonce).', 'anikeola-cbt' ) ) ); return;
@@ -698,52 +580,24 @@ add_action( 'wp_ajax_anikeola_cbt_submit_exam_answers', 'anikeola_cbt_process_ex
 
 
 // --- AJAX Handler for Searching Questions (Admin) ---
-function anikeola_cbt_search_questions_ajax_handler() {
+function anikeola_cbt_search_questions_ajax_handler() { /* ... same as v2.1 ... */ 
     check_ajax_referer( 'anikeola_cbt_admin_nonce', 'nonce' ); 
-
     $search_term = isset( $_POST['search_term'] ) ? sanitize_text_field( $_POST['search_term'] ) : '';
     $subject_id = isset( $_POST['subject_id'] ) ? intval( $_POST['subject_id'] ) : 0;
     $class_level_id = isset( $_POST['class_level_id'] ) ? intval( $_POST['class_level_id'] ) : 0;
     $topic_id = isset( $_POST['topic_id'] ) ? intval( $_POST['topic_id'] ) : 0;
-
-    $args = array(
-        'post_type'      => 'cbt_question',
-        'post_status'    => 'publish',
-        'posts_per_page' => 50, 
-        's'              => $search_term, 
-    );
-
+    $args = array('post_type'=> 'cbt_question','post_status'=> 'publish','posts_per_page' => 50,'s'=> $search_term,);
     $tax_query = array( 'relation' => 'AND' );
-    if ( $subject_id > 0 ) {
-        $tax_query[] = array( 'taxonomy' => 'cbt_subject', 'field' => 'term_id', 'terms' => $subject_id );
-    }
-    if ( $class_level_id > 0 ) {
-        $tax_query[] = array( 'taxonomy' => 'cbt_class_level', 'field' => 'term_id', 'terms' => $class_level_id );
-    }
-    if ( $topic_id > 0 ) {
-        $tax_query[] = array( 'taxonomy' => 'cbt_topic', 'field' => 'term_id', 'terms' => $topic_id );
-    }
-
-    if ( count( $tax_query ) > 1 ) { 
-        $args['tax_query'] = $tax_query;
-    }
-
+    if ( $subject_id > 0 ) { $tax_query[] = array( 'taxonomy' => 'cbt_subject', 'field' => 'term_id', 'terms' => $subject_id ); }
+    if ( $class_level_id > 0 ) { $tax_query[] = array( 'taxonomy' => 'cbt_class_level', 'field' => 'term_id', 'terms' => $class_level_id ); }
+    if ( $topic_id > 0 ) { $tax_query[] = array( 'taxonomy' => 'cbt_topic', 'field' => 'term_id', 'terms' => $topic_id ); }
+    if ( count( $tax_query ) > 1 ) { $args['tax_query'] = $tax_query; }
     $query = new WP_Query( $args );
     $questions_found = array();
-
     if ( $query->have_posts() ) {
-        while ( $query->have_posts() ) {
-            $query->the_post();
-            $questions_found[] = array(
-                'id'    => get_the_ID(),
-                'title' => get_the_title(),
-            );
-        }
-        wp_reset_postdata();
-        wp_send_json_success( $questions_found );
-    } else {
-        wp_send_json_success( array() ); 
-    }
+        while ( $query->have_posts() ) { $query->the_post(); $questions_found[] = array('id'=> get_the_ID(),'title' => get_the_title(),); }
+        wp_reset_postdata(); wp_send_json_success( $questions_found );
+    } else { wp_send_json_success( array() ); }
     wp_die(); 
 }
 add_action( 'wp_ajax_anikeola_cbt_search_questions', 'anikeola_cbt_search_questions_ajax_handler' );
