@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Anikeola CBT System Core
  * Description: Registers CPTs, Taxonomies, Meta Boxes, CSV Import, and Exam functionality for the Anikeola CBT System.
- * Version: 2.3
+ * Version: 2.2
  * Author: Daniel Adebisi
  */
 
@@ -115,7 +115,7 @@ function anikeola_cbt_register_exam_cpt() {
 add_action( 'init', 'anikeola_cbt_register_exam_cpt', 0 );
 
 
-// Taxonomies (Subject, Class Level, Topic) - No changes from Version 2.2
+// Taxonomies (Subject, Class Level, Topic)
 function anikeola_cbt_register_subject_taxonomy() {
     $labels = array('name' => _x( 'Subjects', 'taxonomy general name', 'anikeola-cbt' ), 'singular_name' => _x( 'Subject', 'taxonomy singular name', 'anikeola-cbt' ), 'menu_name' => __( 'Subjects', 'anikeola-cbt' ),);
     $args = array('hierarchical' => true, 'labels' => $labels, 'show_ui' => true, 'show_admin_column' => true, 'query_var' => true, 'rewrite' => array( 'slug' => 'cbt-subject' ), 'show_in_rest' => true,);
@@ -138,7 +138,7 @@ function anikeola_cbt_register_topic_taxonomy() {
 add_action( 'init', 'anikeola_cbt_register_topic_taxonomy', 0 );
 
 
-// --- Meta Box for Question Answers (No changes from Version 2.2) ---
+// --- Meta Box for Question Answers ---
 function anikeola_cbt_add_answers_meta_box() {
     add_meta_box('anikeola_cbt_answers_meta_box_id', __( 'Question Options', 'anikeola-cbt' ), 'anikeola_cbt_answers_meta_box_callback', 'cbt_question', 'normal', 'high');
 }
@@ -198,7 +198,7 @@ function anikeola_cbt_save_answers_meta_box_data( $post_id ) {
 add_action( 'save_post_cbt_question', 'anikeola_cbt_save_answers_meta_box_data' );
 
 
-// --- Meta Box for Exam Settings - UPDATED for Randomization ---
+// --- Meta Box for Exam Settings ---
 function anikeola_cbt_add_exam_settings_meta_box() {
     add_meta_box('anikeola_cbt_exam_settings_meta_box_id',__( 'Exam Settings', 'anikeola-cbt' ),'anikeola_cbt_exam_settings_meta_box_callback','cbt_exam','normal','high');
 }
@@ -247,14 +247,13 @@ function anikeola_cbt_save_exam_settings_meta_box_data( $post_id ) {
     if ( isset( $_POST['_anikeola_cbt_passing_score'] ) ) { update_post_meta( $post_id, '_anikeola_cbt_passing_score', sanitize_text_field( $_POST['_anikeola_cbt_passing_score'] ) ); }
     if ( isset( $_POST['_anikeola_cbt_attempts_allowed'] ) ) { update_post_meta( $post_id, '_anikeola_cbt_attempts_allowed', sanitize_text_field( $_POST['_anikeola_cbt_attempts_allowed'] ) ); }
     
-    // Save Randomization Settings
     update_post_meta( $post_id, '_anikeola_cbt_randomize_questions', isset( $_POST['_anikeola_cbt_randomize_questions'] ) ? '1' : '0' );
     update_post_meta( $post_id, '_anikeola_cbt_randomize_options', isset( $_POST['_anikeola_cbt_randomize_options'] ) ? '1' : '0' );
 }
 add_action( 'save_post_cbt_exam', 'anikeola_cbt_save_exam_settings_meta_box_data' );
 
 
-// --- Meta Box for Managing Exam Questions (No changes from Version 2.2) ---
+// --- Meta Box for Managing Exam Questions ---
 function anikeola_cbt_add_manage_questions_meta_box() {
     add_meta_box('anikeola_cbt_manage_questions_meta_box_id',__( 'Manage Exam Questions', 'anikeola-cbt' ),'anikeola_cbt_manage_questions_meta_box_callback','cbt_exam','normal','high');
 }
@@ -326,7 +325,7 @@ function anikeola_cbt_save_manage_questions_meta_box_data( $post_id ) {
 add_action( 'save_post_cbt_exam', 'anikeola_cbt_save_manage_questions_meta_box_data' );
 
 
-// --- CSV Import Functionality (No changes from Version 2.2) ---
+// --- CSV Import Functionality ---
 function anikeola_cbt_add_import_submenu_page() {
     add_submenu_page('edit.php?post_type=cbt_exam',__( 'Import Exam & Questions', 'anikeola-cbt' ),__( 'Import Exam CSV', 'anikeola-cbt' ),'manage_options','anikeola-cbt-import-exam','anikeola_cbt_render_import_exam_page');
 }
@@ -508,7 +507,6 @@ function anikeola_cbt_exam_shortcode( $atts ) {
     $question_ids = get_post_meta( $exam_id, '_anikeola_cbt_exam_question_ids', true );
     if ( ! is_array( $question_ids ) || empty( $question_ids ) ) { return '<p>' . esc_html__( 'This exam currently has no questions configured.', 'anikeola-cbt' ) . '</p>'; }
 
-    // Check if question order should be randomized
     $randomize_questions = get_post_meta( $exam_id, '_anikeola_cbt_randomize_questions', true );
     if ( $randomize_questions === '1' ) {
         shuffle( $question_ids );
@@ -546,26 +544,21 @@ function anikeola_cbt_exam_shortcode( $atts ) {
                     $answer_options_meta = get_post_meta( $question_id, '_anikeola_cbt_answer_options', true );
                     if ( ! is_array( $answer_options_meta ) ) { $answer_options_meta = array_fill(0,5,''); }
 
-                    // Prepare options with their original indices for shuffling if needed
                     $options_to_display = array();
                     foreach ($answer_options_meta as $original_idx => $text) {
-                        if (trim($text) !== '') {
-                            $options_to_display[$original_idx] = $text;
-                        }
+                        if (trim($text) !== '') { $options_to_display[$original_idx] = $text; }
                     }
                     
                     $option_keys = array_keys($options_to_display);
-                    if ($randomize_options === '1') {
-                        shuffle($option_keys); // Shuffle the keys (which are original indices)
-                    }
+                    if ($randomize_options === '1') { shuffle($option_keys); }
                 ?>
                     <div class="anikeola-cbt-question" id="question-<?php echo esc_attr($exam_id . '-' . $question_id); ?>" data-question-id="<?php echo esc_attr($question_id); ?>">
                         <h3 class="anikeola-cbt-question-title"><?php echo ($index + 1) . '. ' . esc_html( $question_title ); ?></h3>
                         <?php if ( ! empty( $question_post->post_content ) ) : ?><div class="anikeola-cbt-question-description"><?php echo apply_filters( 'the_content', $question_post->post_content ); ?></div><?php endif; ?>
                         <ul class="anikeola-cbt-answer-options">
                             <?php 
-                            foreach ( $option_keys as $shuffled_key_idx ) : // Loop through shuffled keys
-                                $option_original_idx = $shuffled_key_idx; // This is the original index
+                            foreach ( $option_keys as $shuffled_key_idx ) : 
+                                $option_original_idx = $shuffled_key_idx; 
                                 $option_text = $options_to_display[$option_original_idx];
                             ?>
                                 <li><label><input type="radio" name="answers[<?php echo esc_attr( $question_id ); ?>]" value="<?php echo esc_attr( $option_original_idx ); ?>"> <span><?php echo esc_html( $option_text ); ?></span></label></li>
